@@ -59,10 +59,16 @@ int NumLoops;			// number of times each cat and mouse should eat
 /*
  * Once the main driver function (catmouse()) has created the cat and mouse simulation threads, it uses this semaphore to block until all of the cat and mouse simulations are finished.
  */
+
 struct semaphore *CatMouseWait;
-
 struct semaphore *BowlThatIsEmpty;
-
+struct lock *BowlSelectLock;
+struct lock *CounterLock;
+struct cv *ExclusiveCat;
+struct cv *ExclusiveMouse;
+volatile int numcat=0;
+volatile int nummouse=0;
+volatile char *bowls;
 /*
  * 
  * Function Definitions
@@ -70,33 +76,17 @@ struct semaphore *BowlThatIsEmpty;
  */
 
 /*
- * cat_simulation()
+ * sync_var_init()
  *
  * Arguments:
- *      void * unusedpointer: currently unused.
- *      unsigned long catnumber: holds cat identifier from 0 to NumCats-1.
+ *      nothing.
  *
  * Returns:
  *      nothing.
  *
  * Notes:
- *      Each cat simulation thread runs this function.
- *
- *      You need to finish implementing this function using the OS161 synchronization primitives as indicated in the assignment description
+ *      This is called by the mouse and cat sim to init the null sync variables.
  */
-
-struct lock *BowlSelectLock;
-struct lock *CounterLock;
-
-
-
-struct cv *ExclusiveCat;
-struct cv *ExclusiveMouse;
-
-
-volatile int numcat=0;
-volatile int nummouse=0;
-volatile char *bowls;
 
 static void sync_var_init() {
 
@@ -131,6 +121,21 @@ static void sync_var_init() {
 	}
 
 }
+/*
+ * cat_simulation()
+ *
+ * Arguments:
+ *      void * unusedpointer: currently unused.
+ *      unsigned long catnumber: holds cat identifier from 0 to NumCats-1.
+ *
+ * Returns:
+ *      nothing.
+ *
+ * Notes:
+ *      Each cat simulation thread runs this function.
+ *
+ *      You need to finish implementing this function using the OS161 synchronization primitives as indicated in the assignment description
+ */
 
 static void cat_simulation(void *unusedpointer, unsigned long catnumber) {
 	sync_var_init();

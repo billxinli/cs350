@@ -105,7 +105,10 @@ struct lock *lock_create(const char *name) {
 		return NULL;
 	}
 	// add stuff here as needed
+
+#if OPT_A1
 	lock->thread = NULL;
+#endif
 
 	return lock;
 }
@@ -125,12 +128,13 @@ void lock_acquire(struct lock *lock) {
 	int spl;
 	assert(lock != NULL);
 	assert(in_interrupt == 0);
-
+	//turn off interrupt
 	spl = splhigh();
 	while (lock->thread != NULL) {
 		thread_sleep(lock);
 	}
 	assert(lock->thread == NULL);
+	//set the current thread as the thread that is holding the lock
 	lock->thread = curthread;
 	splx(spl);
 #else
@@ -148,14 +152,14 @@ void lock_release(struct lock *lock) {
 	assert(lock != NULL);
 	assert(in_interrupt == 0);
 
+	//turn off interrupt
 	spl = splhigh();
-
+	//make sure that you actually hold the lock
 	assert(lock_do_i_hold(lock));
-
+	//release the lock, the second assert shouldn't happen
 	lock->thread = NULL;
-
 	assert(lock->thread == NULL);
-
+	//wake up all the awaiting locks
 	thread_wakeup(lock);
 	splx(spl);
 #else
@@ -172,13 +176,12 @@ int lock_do_i_hold(struct lock *lock) {
 	int status;
 	assert(lock != NULL);
 	assert(in_interrupt == 0);
-
+	//turn off interrupt
 	spl = splhigh();
-
+	//are we the owner of this lock?
 	status = (curthread == lock->thread);
-
 	splx(spl);
-
+	//return the int
 	return status;
 #else
 	// Write this
@@ -220,25 +223,22 @@ void cv_destroy(struct cv *cv) {
 	kfree(cv);
 }
 
-//thread_wakeup_one
 void cv_wait(struct cv *cv, struct lock *lock) {
 #if OPT_A1
 	int spl;
 	assert(lock != NULL);
 	assert(cv != NULL);
-
+	//turn off interrupt
 	spl = splhigh();
-
+	//otherwise you can't release the lock
 	assert(lock_do_i_hold(lock));
-
+	//release the lock
 	lock_release(lock);
-
+	//put this thread to sleep on cv
 	thread_sleep(cv);
-
+	//after waking up try to acquire the locka gain
 	lock_acquire(lock);
-
 	splx(spl);
-
 #else
 	// Write this
 	(void)cv;		// suppress warning until code gets written
@@ -252,11 +252,10 @@ void cv_signal(struct cv *cv, struct lock *lock) {
 	int spl;
 	assert(lock != NULL);
 	assert(cv != NULL);
-
+	//turn off interrupt
 	spl = splhigh();
-
+	//wake up 1 thread that is sleeping on cv
 	thread_wakeup_one(cv);
-
 	splx(spl);
 #else
 	// Write this
@@ -271,13 +270,11 @@ void cv_broadcast(struct cv *cv, struct lock *lock) {
 	int spl;
 	assert(lock != NULL);
 	assert(cv != NULL);
-
+	//turn off interrupt
 	spl = splhigh();
-
+	//wake up all the bloody threads
 	thread_wakeup(cv);
-
 	splx(spl);
-
 #else
 	// Write this
 	(void)cv;		// suppress warning until code gets written

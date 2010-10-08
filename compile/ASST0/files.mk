@@ -384,6 +384,11 @@ menu.o: ${S}/main/menu.c
 SRCS+=${S}/main/menu.c
 OBJS+=menu.o
 
+hello.o: ${S}/main/hello.c
+	${COMPILE.c} ${S}/main/hello.c
+SRCS+=${S}/main/hello.c
+OBJS+=hello.o
+
 loadelf.o: ${S}/userprog/loadelf.c
 	${COMPILE.c} ${S}/userprog/loadelf.c
 SRCS+=${S}/userprog/loadelf.c

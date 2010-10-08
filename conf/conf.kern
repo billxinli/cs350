@@ -372,7 +372,7 @@ file      thread/thread.c
 
 file      main/main.c
 file      main/menu.c
-
+file      main/hello.c
 #
 # User-level programming/system call support
 # (you will probably want to add stuff here while doing the basic system

@@ -300,7 +300,7 @@ main.o: ../../main/main.c ../../include/types.h machine/types.h \
   machine/spl.h ../../include/test.h ../../include/synch.h \
   ../../include/thread.h machine/pcb.h ../../include/scheduler.h \
   ../../include/dev.h ../../include/vfs.h ../../include/vm.h machine/vm.h \
-  ../../include/syscall.h ../../include/version.h
+  ../../include/syscall.h ../../include/version.h opt-A0.h
 menu.o: ../../main/menu.c ../../include/types.h machine/types.h \
   ../../include/kern/types.h machine/ktypes.h ../../include/kern/errno.h \
   ../../include/kern/unistd.h ../../include/kern/limits.h \
@@ -309,6 +309,9 @@ menu.o: ../../main/menu.c ../../include/types.h machine/types.h \
   ../../include/syscall.h ../../include/uio.h ../../include/vfs.h \
   ../../include/sfs.h ../../include/vnode.h ../../include/fs.h \
   ../../include/kern/sfs.h ../../include/test.h opt-sfs.h opt-net.h
+hello.o: ../../main/hello.c ../../include/types.h machine/types.h \
+  ../../include/kern/types.h machine/ktypes.h ../../include/lib.h \
+  machine/setjmp.h
 loadelf.o: ../../userprog/loadelf.c ../../include/types.h machine/types.h \
   ../../include/kern/types.h machine/ktypes.h ../../include/kern/errno.h \
   ../../include/lib.h machine/setjmp.h ../../include/uio.h \

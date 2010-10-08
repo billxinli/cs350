@@ -9,14 +9,13 @@
 #include <thread.h>
 #include <curthread.h>
 #include <machine/spl.h>
+#include "opt-A1.h"
 
 ////////////////////////////////////////////////////////////
 //
 // Semaphore.
 
-struct semaphore *
-sem_create(const char *namearg, int initial_count)
-{
+struct semaphore *sem_create(const char *namearg, int initial_count) {
 	struct semaphore *sem;
 
 	assert(initial_count >= 0);
@@ -36,14 +35,12 @@ sem_create(const char *namearg, int initial_count)
 	return sem;
 }
 
-void
-sem_destroy(struct semaphore *sem)
-{
+void sem_destroy(struct semaphore *sem) {
 	int spl;
 	assert(sem != NULL);
 
 	spl = splhigh();
-	assert(thread_hassleepers(sem)==0);
+	assert(thread_hassleepers(sem) == 0);
 	splx(spl);
 
 	/*
@@ -59,9 +56,7 @@ sem_destroy(struct semaphore *sem)
 	kfree(sem);
 }
 
-void 
-P(struct semaphore *sem)
-{
+void P(struct semaphore *sem) {
 	int spl;
 	assert(sem != NULL);
 
@@ -71,25 +66,23 @@ P(struct semaphore *sem)
 	 * For robustness, always check, even if we can actually
 	 * complete the P without blocking.
 	 */
-	assert(in_interrupt==0);
+	assert(in_interrupt == 0);
 
 	spl = splhigh();
-	while (sem->count==0) {
+	while (sem->count == 0) {
 		thread_sleep(sem);
 	}
-	assert(sem->count>0);
+	assert(sem->count > 0);
 	sem->count--;
 	splx(spl);
 }
 
-void
-V(struct semaphore *sem)
-{
+void V(struct semaphore *sem) {
 	int spl;
 	assert(sem != NULL);
 	spl = splhigh();
 	sem->count++;
-	assert(sem->count>0);
+	assert(sem->count > 0);
 	thread_wakeup(sem);
 	splx(spl);
 }
@@ -98,9 +91,7 @@ V(struct semaphore *sem)
 //
 // Lock.
 
-struct lock *
-lock_create(const char *name)
-{
+struct lock *lock_create(const char *name) {
 	struct lock *lock;
 
 	lock = kmalloc(sizeof(struct lock));
@@ -113,57 +104,96 @@ lock_create(const char *name)
 		kfree(lock);
 		return NULL;
 	}
-	
 	// add stuff here as needed
-	
+	lock->thread = NULL;
+
 	return lock;
 }
 
-void
-lock_destroy(struct lock *lock)
-{
+void lock_destroy(struct lock *lock) {
 	assert(lock != NULL);
 
 	// add stuff here as needed
-	
+
 	kfree(lock->name);
 	kfree(lock);
 }
 
-void
-lock_acquire(struct lock *lock)
-{
-	// Write this
+void lock_acquire(struct lock *lock) {
 
-	(void)lock;  // suppress warning until code gets written
+#if OPT_A1
+	int spl;
+	assert(lock != NULL);
+	assert(in_interrupt == 0);
+
+	spl = splhigh();
+	while (lock->thread != NULL) {
+		thread_sleep(lock);
+	}
+	assert(lock->thread == NULL);
+	lock->thread = curthread;
+	splx(spl);
+#else
+
+	// Write this
+	(void)lock;		// suppress warning until code gets written
+
+#endif
 }
 
-void
-lock_release(struct lock *lock)
-{
-	// Write this
+void lock_release(struct lock *lock) {
 
-	(void)lock;  // suppress warning until code gets written
+#if OPT_A1
+	int spl;
+	assert(lock != NULL);
+	assert(in_interrupt == 0);
+
+	spl = splhigh();
+
+	assert(lock_do_i_hold(lock));
+
+	lock->thread = NULL;
+
+	assert(lock->thread == NULL);
+
+	thread_wakeup(lock);
+	splx(spl);
+#else
+
+	// Write this
+	(void)lock;		// suppress warning until code gets written
+
+#endif
 }
 
-int
-lock_do_i_hold(struct lock *lock)
-{
+int lock_do_i_hold(struct lock *lock) {
+#if OPT_A1
+	int spl;
+	int status;
+	assert(lock != NULL);
+	assert(in_interrupt == 0);
+
+	spl = splhigh();
+
+	status = (curthread == lock->thread);
+
+	splx(spl);
+
+	return status;
+#else
 	// Write this
+	(void)lock;		// suppress warning until code gets written
+	return 1;		// dummy until code gets written
 
-	(void)lock;  // suppress warning until code gets written
+#endif
 
-	return 1;    // dummy until code gets written
 }
 
 ////////////////////////////////////////////////////////////
 //
 // CV
 
-
-struct cv *
-cv_create(const char *name)
-{
+struct cv *cv_create(const char *name) {
 	struct cv *cv;
 
 	cv = kmalloc(sizeof(struct cv));
@@ -172,47 +202,86 @@ cv_create(const char *name)
 	}
 
 	cv->name = kstrdup(name);
-	if (cv->name==NULL) {
+	if (cv->name == NULL) {
 		kfree(cv);
 		return NULL;
 	}
-	
 	// add stuff here as needed
-	
+
 	return cv;
 }
 
-void
-cv_destroy(struct cv *cv)
-{
+void cv_destroy(struct cv *cv) {
 	assert(cv != NULL);
 
 	// add stuff here as needed
-	
+
 	kfree(cv->name);
 	kfree(cv);
 }
 
-void
-cv_wait(struct cv *cv, struct lock *lock)
-{
+//thread_wakeup_one
+void cv_wait(struct cv *cv, struct lock *lock) {
+#if OPT_A1
+	int spl;
+	assert(lock != NULL);
+	assert(cv != NULL);
+
+	spl = splhigh();
+
+	assert(lock_do_i_hold(lock));
+
+	lock_release(lock);
+
+	thread_sleep(cv);
+
+	lock_acquire(lock);
+
+	splx(spl);
+
+#else
 	// Write this
-	(void)cv;    // suppress warning until code gets written
-	(void)lock;  // suppress warning until code gets written
+	(void)cv;		// suppress warning until code gets written
+	(void)lock;		// suppress warning until code gets written
+
+#endif
 }
 
-void
-cv_signal(struct cv *cv, struct lock *lock)
-{
+void cv_signal(struct cv *cv, struct lock *lock) {
+#if OPT_A1
+	int spl;
+	assert(lock != NULL);
+	assert(cv != NULL);
+
+	spl = splhigh();
+
+	thread_wakeup_one(cv);
+
+	splx(spl);
+#else
 	// Write this
-	(void)cv;    // suppress warning until code gets written
-	(void)lock;  // suppress warning until code gets written
+	(void)cv;		// suppress warning until code gets written
+	(void)lock;		// suppress warning until code gets written
+
+#endif
 }
 
-void
-cv_broadcast(struct cv *cv, struct lock *lock)
-{
+void cv_broadcast(struct cv *cv, struct lock *lock) {
+#if OPT_A1
+	int spl;
+	assert(lock != NULL);
+	assert(cv != NULL);
+
+	spl = splhigh();
+
+	thread_wakeup(cv);
+
+	splx(spl);
+
+#else
 	// Write this
-	(void)cv;    // suppress warning until code gets written
-	(void)lock;  // suppress warning until code gets written
+	(void)cv;		// suppress warning until code gets written
+	(void)lock;		// suppress warning until code gets written
+
+#endif
 }

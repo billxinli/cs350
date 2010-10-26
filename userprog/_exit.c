@@ -14,7 +14,12 @@ Return Values
 _exit does not return. 
 */
 
-#include <unistd.h>
+#include <kern/errno.h>
+#include <kern/unistd.h>
+#include <curthread.h>
+#include <lib.h>
+#include <thread.h>
+
 
 void sys__exit(int exitcode){
 	kprintf("[SYSCALL] exiting with %d \n", exitcode);

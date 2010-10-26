@@ -383,6 +383,8 @@ file      userprog/loadelf.c
 file      userprog/runprogram.c
 file      userprog/uio.c
 
+file      userprog/_exit.c
+
 #
 # Virtual memory system
 # (you will probably want to add stuff here while doing the VM assignment)

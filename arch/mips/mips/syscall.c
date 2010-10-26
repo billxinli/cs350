@@ -48,7 +48,7 @@ void mips_syscall(struct trapframe *tf) {
 
 	case SYS__exit:
 		//0
-		//err = sys_reboot(tf->tf_a0);
+		sys__exit(tf->tf_a0);
 		break;
 
 	case SYS_execv:
@@ -74,6 +74,7 @@ void mips_syscall(struct trapframe *tf) {
 	case SYS_write:
 		//6
 		//err = sys_write(tf->tf_a0, const void *buf, size_t size);
+		
 		break;
 
 	case SYS_reboot:

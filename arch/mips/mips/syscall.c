@@ -28,6 +28,8 @@
  * (In fact, we recommend you don't use 64-bit quantities at all. See arch/mips/include/types.h.)
  */
 
+void sys__exit(int exitcode);
+
 void mips_syscall(struct trapframe *tf) {
 	int callno;
 	int32_t retval;

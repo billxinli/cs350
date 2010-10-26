@@ -14,11 +14,18 @@ Return Values
 _exit does not return. 
 */
 
+#if OPT_A2
 #include <kern/errno.h>
 #include <kern/unistd.h>
-
+#include <thread.h>
+#include <lib.h>
 
 void sys__exit(int exitcode){
 	kprintf("[SYSCALL] exiting with %d \n", exitcode);
 	thread_exit();
 }
+
+
+
+
+#endif /* OPT_A2 */

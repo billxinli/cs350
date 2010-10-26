@@ -52,14 +52,19 @@ struct filedescriptor *ft_get(struct filetable *ft, int fti) {
     return array_getguy(ft->filedescriptor, fti);
 }
 
-int ft_add(struct filetable* ft, filedescriptor* fdn) {
+int ft_add(struct filetable* ft, struct filedescriptor* fdn) {
+    (void) ft;
+    (void) fdn;
     return 1;
 }
 
 int ft_remove(struct filetable* ft, int fti) {
+    (void) ft;
+    (void) fti;
     return 1;
 }
 
 int ft_destroy(struct filetable* ft) {
+    (void) ft;
     return 1;
 }

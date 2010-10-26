@@ -27,7 +27,7 @@ struct filedescriptor;
 struct filetable *ft_create();
 int ft_size(struct filetable *ft);
 struct filedescriptor *ft_get(struct filetable *ft, int fti);
-int ft_add(struct filetable* ft, filedescriptor* fdn);
+int ft_add(struct filetable* ft, struct filedescriptor* fdn);
 int ft_remove(struct filetable* ft, int fti);
 int ft_destroy(struct filetable* ft);
 

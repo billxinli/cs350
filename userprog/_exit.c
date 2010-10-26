@@ -13,6 +13,7 @@ Cause the current process to exit. The exit code exitcode is reported back to ot
 Return Values
 _exit does not return. 
 */
+#include "opt-A2.h"
 
 #if OPT_A2
 #include <kern/errno.h>

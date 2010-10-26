@@ -1,12 +1,12 @@
+#include <curthread.h>
+#include "opt-A1.h"
+
 /*
  * Header file for synchronization primitives.
  */
 
 #ifndef _SYNCH_H_
 #define _SYNCH_H_
-
-#include <thread.h>
-
 
 /*
  * Dijkstra-style semaphore.
@@ -53,11 +53,10 @@ void              sem_destroy(struct semaphore *);
 
 struct lock {
 	char *name;
-	// add what you need here
-	// (don't forget to mark things volatile as needed)
-
-	struct thread *thread;
-	
+#if OPT_A1
+	struct thread *owner; //the thread that aquires the lock
+	volatile int acquired; //weather the lock has been acquired or not
+#endif
 };
 
 struct lock *lock_create(const char *name);
@@ -93,10 +92,21 @@ void         lock_destroy(struct lock *);
  * internally.
  */
 
+#if OPT_A1
+//a list structure for use in my CV implementation
+struct wait_list {
+    volatile int signal; //1 if the thread should be woken up, 0 otherwise
+    struct lock *lock;
+    struct wait_list *next;
+};
+#endif
+ 
 struct cv {
 	char *name;
-	// add what you need here
-	// (don't forget to mark things volatile as needed)
+#if OPT_A1
+    struct wait_list *first; //next thread to be woken up
+    struct wait_list *last; //most recently added thread
+#endif
 };
 
 struct cv *cv_create(const char *name);

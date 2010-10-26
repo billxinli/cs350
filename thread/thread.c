@@ -573,46 +573,6 @@ thread_wakeup(const void *addr)
 	}
 }
 
-
-/*
- * Wake up one thread who are sleeping on "sleep address"
- * ADDR.
- */
-void
-thread_wakeup_one(const void *addr)
-{
-	int i, result;
-	
-	// meant to be called with interrupts off
-	assert(curspl>0);
-	
-	// This is inefficient. Feel free to improve it.
-	
-	for (i=0; i<array_getnum(sleepers); i++) {
-		struct thread *t = array_getguy(sleepers, i);
-		if (t->t_sleepaddr == addr) {
-			
-			// Remove from list
-			array_remove(sleepers, i);
-			
-			// must look at the same sleepers[i] again
-			i--;
-
-			/*
-			 * Because we preallocate during thread_fork,
-			 * this should never fail.
-			 */
-			result = make_runnable(t);
-			assert(result==0);
-			
-			//TODO: This is the biggest fucking hack ever. Should probably improve this.
-			return;
-		}
-	}
-}
-
-
-
 /*
  * Return nonzero if there are any threads who are sleeping on "sleep address"
  * ADDR. This is meant to be used only for diagnostic purposes.

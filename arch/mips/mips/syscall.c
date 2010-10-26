@@ -69,6 +69,11 @@ void mips_syscall(struct trapframe *tf) {
 		//err = sys_reboot(tf->tf_a0);
 		break;
 
+	case SYS_open:
+		//4
+		//err = sys_reboot(tf->tf_a0);
+		break;
+		
 	case SYS_read:
 		//5
 		//err = sys_reboot(tf->tf_a0);
@@ -76,6 +81,12 @@ void mips_syscall(struct trapframe *tf) {
 
 	case SYS_write:
 		//6
+		//err = sys_write(tf->tf_a0, const void *buf, size_t size);
+		
+		break;
+
+	case SYS_close:
+		//7
 		//err = sys_write(tf->tf_a0, const void *buf, size_t size);
 		
 		break;

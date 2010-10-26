@@ -12,6 +12,7 @@
 #include <scheduler.h>
 #include <addrspace.h>
 #include <vnode.h>
+#include <filetable.h>
 #include "opt-synchprobs.h"
 
 /* States a thread can be in. */
@@ -61,7 +62,7 @@ thread_create(const char *name)
 	
 	// If you add things to the thread structure, be sure to initialize
 	// them here.
-	
+        thread->ft = ft_create();
 	return thread;
 }
 

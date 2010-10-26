@@ -16,6 +16,7 @@ _exit does not return.
 #include "opt-A2.h"
 
 #if OPT_A2
+#include <types.h>
 #include <kern/errno.h>
 #include <kern/unistd.h>
 #include <thread.h>

@@ -16,6 +16,7 @@
  *     ft_add     - add a filedescriptor to the filetable.
  *     ft_remove  - remove the fti th filedescriptor from the filetable.
  *     ft_destroy - destroy the filetable.
+ *     ft_test    - tests the implementation of the filetable, will crash the kernel.
  */
 
 // Structure of the filedescriptor
@@ -34,9 +35,8 @@ struct filedescriptor {
     struct vnode* fdvnode;
 };
 
-
-
 // Structure of the filetable
+struct filetable;
 
 struct filetable {
     //The table of file descriptors
@@ -47,11 +47,7 @@ struct filetable {
     int size;
 };
 
-
-
-
 struct filetable *ft_create();
-//PRACTICE SAFE SEX PEOPLE!
 int ft_attachstds(struct filetable *ft);
 int ft_size(struct filetable *ft);
 struct filedescriptor *ft_get(struct filetable *ft, int fti);

@@ -18,32 +18,38 @@
  * 
  */
 struct filetable *ft_create() {
+    //Allocate memory for the filetable structures
     struct filetable *ft;
     ft = kmalloc(sizeof (struct filetable));
     if (ft == NULL) {
         return NULL;
     }
     ft->size = 0;
+
+    //Allocate memory for the array of file descriptors
     ft->filedescriptor = array_create();
     if (ft->filedescriptor == NULL) {
         ft_destroy(ft);
         return NULL;
     }
 
+    //Allocate memory for the queue of free file descriptors
+    //Used to recover unused file descriptor ids
     ft->nextfiledescriptor = q_create(100);
     if (ft->nextfiledescriptor == NULL) {
         ft_destroy(ft);
         return NULL;
     }
 
-
+    //Return the file table
     return ft;
 }
 
 /*
  * ft_attachstds()
- * Attach the standard in, out, err to the file table, this can't be located the ft_create function
- * because that the device "con:" etc are not attached to the list of device when the os is the boot sequence
+ * Attach the standard in, out, err to the file table, this can't be located the
+ * ft_create function because that the device "con:" etc are not attached to the
+ * list of device when the os is the boot sequence.
  */
 int ft_attachstds(struct filetable *ft) {
     char *console = NULL;
@@ -122,13 +128,21 @@ int ft_attachstds(struct filetable *ft) {
     return 1;
 }
 
+/*
+ * ft_size()
+ * This returns how big the array of the file descriptor is, this **DOES NOT**
+ * tell you how many file descriptors are opened to the thread.
+ */
 int ft_size(struct filetable *ft) {
+    assert(ft != NULL);
     return (array_getnum(ft->filedescriptor));
 }
 
+/*
+ * ft_get()
+ * This gets the file descriptor from a file table and the given file descriptor id.
+ */
 struct filedescriptor *ft_get(struct filetable *ft, int fti) {
-
-
     if (ft_size(ft) == 0) {
         ft_attachstds(ft);
     }
@@ -141,8 +155,13 @@ struct filedescriptor *ft_get(struct filetable *ft, int fti) {
     return ret;
 }
 
+/*
+ * ft_add()
+ * This adds the file descriptor to the file table, it does by checking if there
+ * is a free file descriptor in the queue, if not, it will add to the end of the
+ * array. This will recover and reuse closed file descriptor ids.
+ */
 int ft_add(struct filetable* ft, struct filedescriptor* fd) {
-
 
     int fdn = 0;
 
@@ -150,7 +169,6 @@ int ft_add(struct filetable* ft, struct filedescriptor* fd) {
         fdn = (int) q_remhead(ft->nextfiledescriptor);
 
         fd->fdn = fdn;
-
 
         array_setguy(ft->filedescriptor, fdn, fd);
     } else {
@@ -160,12 +178,15 @@ int ft_add(struct filetable* ft, struct filedescriptor* fd) {
 
     }
 
-
     return fdn;
 }
 
+/*
+ * ft_remove()
+ * This removes the file descriptor from the file table, it will add the file
+ * descriptor id to the queue of availiable ids to use.
+ */
 int ft_remove(struct filetable* ft, int fti) {
-
 
     struct filedescriptor * fd;
     fd = ft_get(ft, fti);
@@ -180,17 +201,32 @@ int ft_remove(struct filetable* ft, int fti) {
         array_setguy(ft->filedescriptor, fti, NULL);
     }
 
-
-
     return 1;
 }
 
+/*
+ * ft_destroy()
+ * This will close and destroy all file descriptors in the file table. Should
+ * only be called when the thread is exiting. In theory there shouldn't be
+ * anything in here, except the stds, if they are attached to the thread.
+ */
+int ft_destroy(struct filetable* ft) {
+    (void) ft;
+    return 1;
+}
+
+/*
+ * ft_test()
+ * This tests the implementation of the file table, insertion, deletion, fd recovery.
+ * This test is not passable, it will crash the kernel.
+ */
 void ft_test(struct filetable* ft) {
 
+    kprintf("filetable test begin\n");
+    kprintf("inserting file descriptors\n");
     ft_attachstds(ft);
 
-
-    kprintf("filetable test\n");
+    kprintf("printing file descriptors\n");
     int i = 0;
     for (i = 0; i < ft_size(ft); i++) {
         struct filedescriptor *fd;
@@ -200,46 +236,41 @@ void ft_test(struct filetable* ft) {
         kprintf("fdl: %s", fd->location);
         kprintf("\n");
     }
+    kprintf("inserting more file descriptors\n");
     ft_attachstds(ft);
 
-
-    kprintf("filetable test2\n");
+    kprintf("printing file descriptors\n");
 
     for (i = 0; i < ft_size(ft); i++) {
         struct filedescriptor *fd;
         fd = ft_get(ft, i);
-        kprintf("filetable index: %d\n", i);
-        kprintf("fdn: %d   ", fd->fdn);
+        kprintf("filetable index: %d ", i);
+        kprintf("fdn: %d ", fd->fdn);
         kprintf("fdl: %s", fd->location);
         kprintf("\n");
     }
 
+    kprintf("removing file descriptor 4\n");
     ft_remove(ft, 4);
+
+    kprintf("inserting more file descriptors\n");
     ft_attachstds(ft);
-    kprintf("filetable test2\n");
+
+    kprintf("printing file descriptors\n");
     for (i = 0; i < ft_size(ft); i++) {
         struct filedescriptor *fd;
         fd = ft_get(ft, i);
-        kprintf("filetable index: %d                 ", i);
-        kprintf("fdn: %d   ", fd->fdn);
+        kprintf("filetable index: %d ", i);
+        kprintf("fdn: %d ", fd->fdn);
         kprintf("fdl: %s", fd->location);
         kprintf("\n");
     }
+
+    kprintf("inserting infinite number of file descriptors\n");
     for (i = 0; i < 2147483647; i++) {
         kprintf("ft_size: %d\n", ft_size(ft));
         ft_attachstds(ft);
     }
-
-
-
-
+    
     panic("test end");
-
-
 }
-
-int ft_destroy(struct filetable* ft) {
-    (void) ft;
-    return 1;
-}
-

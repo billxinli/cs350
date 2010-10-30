@@ -53,7 +53,7 @@ EIO 	A hardware I/O error occurred writing the data.
 #include <vfs.h>
 #include <vnode.h>
 
-int sys_write(int fdn, void *buf, size_t nbytes) {
+int sys_write(int *retval, int fdn, void *buf, size_t nbytes) {
     //Check for Bad memory reference.
     if (!buf) {
         return EFAULT;
@@ -75,7 +75,7 @@ int sys_write(int fdn, void *buf, size_t nbytes) {
             return EBADF;
     }
 
-    int ret = 0;
+    int sizeread = 0;
 
     //The uio structure for vfs_* operations
     struct uio u;
@@ -91,13 +91,14 @@ int sys_write(int fdn, void *buf, size_t nbytes) {
     int spl;
     spl = splhigh();
     // Write
-    ret = VOP_WRITE(fd->fdvnode, &u);
+    sizeread = VOP_WRITE(fd->fdvnode, &u);
     splx(spl);
-    if (ret) {
-        return ret;
+    if (sizeread) {
+        return sizeread;
     }
-    ret = nbytes - u.uio_resid;
-    return ret;
+    sizeread = nbytes - u.uio_resid;
+    *retval = sizeread;
+    return 0;
 }
 #endif /* OPT_A2 */
 

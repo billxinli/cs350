@@ -47,7 +47,7 @@ The following error codes should be returned under the conditions given. Other e
 #include <vfs.h>
 #include <vnode.h>
 
-int sys_read(int fdn, void *buf, size_t nbytes) {
+int sys_read(int *retval, int fdn, void *buf, size_t nbytes) {
 
 
     //Check for Bad memory reference.
@@ -68,35 +68,35 @@ int sys_read(int fdn, void *buf, size_t nbytes) {
         case O_RDWR:
             break;
         default:
-            return (EBADF);
+            return EBADF;
     }
-
-    int ret = 0;
 
     //The uio structure for vfs_* operations
     struct uio u;
     // Set up the uio for reading.
     u.uio_iovec.iov_un.un_ubase = buf;
     u.uio_iovec.iov_len = nbytes;
-    u.uio_offset = fd->offset;
     u.uio_resid = nbytes;
-    u.uio_segflg = UIO_SYSSPACE;
+    u.uio_offset = fd->offset;
+    u.uio_segflg = UIO_USERSPACE;
     u.uio_rw = UIO_READ;
     u.uio_space = curthread->t_vmspace;
+    int sizeread = 0;
+    //int spl;
+    //spl = splhigh();
 
-    int spl;
-    spl = splhigh();
+    sizeread = VOP_READ(fd->fdvnode, &u);
 
-    ret = VOP_READ(fd->fdvnode, &u);
-
-    splx(spl);
-    if (ret) {
-        return ret;
+    //splx(spl);
+    if (sizeread) {
+        return sizeread;
     }
 
-    ret = nbytes - u.uio_resid;
-    return ret;
+    sizeread = nbytes - u.uio_resid;
 
+    *retval = sizeread;
+
+    return 0;
 }
 
 

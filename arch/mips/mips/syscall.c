@@ -7,6 +7,7 @@
 #include <kern/callno.h>
 #include <syscall.h>
 #include "opt-A2.h"
+
 /*
  * System call handler.
  *
@@ -29,113 +30,115 @@
  */
 
 void mips_syscall(struct trapframe *tf) {
-	int callno;
-	int32_t retval;
-	int err;
+    int callno;
+    int32_t retval;
+    int err;
 
-	assert(curspl == 0);
+    assert(curspl == 0);
 
-	callno = tf->tf_v0;
+    callno = tf->tf_v0;
 
-	/*
-	 * Initialize retval to 0. Many of the system calls don't really return a value, just 0 for success and -1 on error. Since retval is the value returned on success,
-	 * initialize it to 0 by default; thus it's not necessary to deal with it except for calls that return other values, like write.
-	 */
+    /*
+     * Initialize retval to 0. Many of the system calls don't really return a value,
+     * just 0 for success and -1 on error. Since retval is the value returned on success,
+     * initialize it to 0 by default; thus it's not necessary to deal with it except
+     * for calls that return other values, like write.
+     */
 
-	retval = 0;
+    retval = 0;
 
-	switch (callno) {
-
-#if OPT_A2
-	case SYS__exit:
-		//0
-		sys__exit(tf->tf_a0);
-		break;
-
-	case SYS_execv:
-		//1
-		//err = sys_reboot(tf->tf_a0);
-		break;
-
-	case SYS_fork:
-		//2
-		//err = sys_reboot(tf->tf_a0);
-		break;
-
-	case SYS_waitpid:
-		//3
-		//err = sys_reboot(tf->tf_a0);
-		break;
-
-	case SYS_open:
-		//4
-		//err = sys_reboot(tf->tf_a0);
-		break;
-		
-	case SYS_read:
-		//5
-		err = sys_read(tf->tf_a0,(void*) tf->tf_a1, tf->tf_a2);
-		break;
-
-	case SYS_write:
-		//6
-		err = sys_write(tf->tf_a0,(void*) tf->tf_a1, tf->tf_a2);
-		
-		break;
-
-	case SYS_close:
-		//7
-		//err = sys_write(tf->tf_a0, const void *buf, size_t size);
-		
-		break;
-
-#endif /* OPT_A2 */
-	case SYS_reboot:
-		//8
-		err = sys_reboot(tf->tf_a0);
-		break;
+    switch (callno) {
 
 #if OPT_A2
-	case SYS_getpid:
-		//11
-		//err = sys_reboot(tf->tf_a0);
-		break;
+        case SYS__exit:
+            //0
+            sys__exit(tf->tf_a0);
+            break;
+
+        case SYS_execv:
+            //1
+            //err = sys_reboot(tf->tf_a0);
+            break;
+
+        case SYS_fork:
+            //2
+            //err = sys_reboot(tf->tf_a0);
+            break;
+
+        case SYS_waitpid:
+            //3
+            //err = sys_reboot(tf->tf_a0);
+            break;
+
+        case SYS_open:
+            //4
+            //err = sys_reboot(tf->tf_a0);
+            break;
+
+        case SYS_read:
+            //5
+            err = sys_read(&retval, tf->tf_a0, (void*) tf->tf_a1, tf->tf_a2);
+            break;
+
+        case SYS_write:
+            //6
+            err = sys_write(&retval, tf->tf_a0, (void*) tf->tf_a1, tf->tf_a2);
+
+            break;
+
+        case SYS_close:
+            //7
+            //err = sys_write(tf->tf_a0, const void *buf, size_t size);
+
+            break;
 
 #endif /* OPT_A2 */
-	default:
-		kprintf("Unknown syscall %d\n", callno);
-		err = ENOSYS;
-		break;
-	}
+        case SYS_reboot:
+            //8
+            err = sys_reboot(tf->tf_a0);
+            break;
 
-	if (err) {
-		/*
-		 * Return the error code. This gets converted at userlevel to a return value of -1 and the error code in errno.
-		 */
-		tf->tf_v0 = err;
-		tf->tf_a3 = 1;	/* signal an error */
-	} else {
-		/* Success. */
-		tf->tf_v0 = retval;
-		tf->tf_a3 = 0;	/* signal no error */
-	}
+#if OPT_A2
+        case SYS_getpid:
+            //11
+            //err = sys_reboot(tf->tf_a0);
+            break;
 
-	/*
-	 * Now, advance the program counter, to avoid restarting the syscall over and over again.
-	 */
+#endif /* OPT_A2 */
+        default:
+            kprintf("Unknown syscall %d\n", callno);
+            err = ENOSYS;
+            break;
+    }
 
-	tf->tf_epc += 4;
+    if (err) {
+        /*
+         * Return the error code. This gets converted at userlevel to a return value of -1 and the error code in errno.
+         */
+        tf->tf_v0 = err;
+        tf->tf_a3 = 1; /* signal an error */
+    } else {
+        /* Success. */
+        tf->tf_v0 = retval;
+        tf->tf_a3 = 0; /* signal no error */
+    }
 
-	/* Make sure the syscall code didn't forget to lower spl */
-	assert(curspl == 0);
+    /*
+     * Now, advance the program counter, to avoid restarting the syscall over and over again.
+     */
+
+    tf->tf_epc += 4;
+
+    /* Make sure the syscall code didn't forget to lower spl */
+    assert(curspl == 0);
 }
 
 void md_forkentry(struct trapframe *tf) {
-	/*
-	 * This function is provided as a reminder. You need to write both it and the code that calls it.
-	 *
-	 * Thus, you can trash it and do things another way if you prefer.
-	 */
+    /*
+     * This function is provided as a reminder. You need to write both it and the code that calls it.
+     *
+     * Thus, you can trash it and do things another way if you prefer.
+     */
 
-	(void)tf;
+    (void) tf;
 }

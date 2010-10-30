@@ -23,7 +23,7 @@ while true; do
 				cd ~/cs350-os161/os161-1.11/kern/conf
 				./config ASST${asst}
 				cd ../compile/ASST${asst}
-				make clean
+				
 				make depend
 				make 
 				make install
@@ -40,6 +40,16 @@ while true; do
 			echo =================================================
 
 		;;
+                a)
+				cd ~/cs350-os161/os161-1.11/kern/conf
+				./config ASST2
+				cd ../compile/ASST2
+				make depend
+				make
+				make install
+			cd ~/cs350-os161/root
+			sys161 kernel "p testbin/add 5 6; q"
+                ;;
 
 		q)
 			exit 0

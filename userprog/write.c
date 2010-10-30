@@ -12,23 +12,31 @@ int
 write(int fd, const void *buf, size_t nbytes>);
 
 Description
-write writes up to buflen bytes to the file specified by fd, at the location in the file specified by the current seek position of the file, taking the data from the space pointed to by buf. The file must be open for writing.
+write writes up to buflen bytes to the file specified by fd, at the location in
+the file specified by the current seek position of the file, taking the data
+from the space pointed to by buf. The file must be open for writing.
 
 The current seek position of the file is advanced by the number of bytes written.
 
 Each write (or read) operation is atomic relative to other I/O to the same file.
 
 Return Values
-The count of bytes written is returned. This count should be positive. A return value of 0 means that nothing could be written, but that no error occurred; this only occurs at end-of-file on fixed-size objects. On error, write returns -1 and sets errno to a suitable error code for the error condition encountered.
+The count of bytes written is returned. This count should be positive. A return
+value of 0 means that nothing could be written, but that no error occurred; this
+only occurs at end-of-file on fixed-size objects. On error, write returns -1 and
+sets errno to a suitable error code for the error condition encountered.
 
-Note that in some cases, particularly on devices, fewer than buflen (but greater than zero) bytes may be written. This depends on circumstances and does not necessarily signify end-of-file. In most cases, one should loop to make sure that all output has actually been written.
+Note that in some cases, particularly on devices, fewer than buflen (but greater
+than zero) bytes may be written. This depends on circumstances and does not
+necessarily signify end-of-file. In most cases, one should loop to make sure that
+all output has actually been written.
 
 Errors
 EBADF 	fd is not a valid file descriptor, or was not opened for writing.
 EFAULT 	Part or all of the address space pointed to by buf is invalid.
 ENOSPC 	There is no free space remaining on the filesystem containing the file.
 EIO 	A hardware I/O error occurred writing the data.
-*/
+ */
 
 #include "opt-A2.h"
 
@@ -37,17 +45,60 @@ EIO 	A hardware I/O error occurred writing the data.
 #include <kern/errno.h>
 #include <kern/unistd.h>
 #include <lib.h>
+#include <filetable.h>
+#include <../arch/mips/include/spl.h>
+#include <curthread.h>
+#include <thread.h>
+#include <uio.h>
+#include <vfs.h>
+#include <vnode.h>
 
-int sys_write(int fd, const void *buf, size_t nbytes){
+int sys_write(int fdn, void *buf, size_t nbytes) {
+    //Check for Bad memory reference.
+    if (!buf) {
+        return EFAULT;
+    }
+    //Get the file descriptor from the opened list of file descriptors that the current thread has, based on the fdn given.
+    //The filedescriptor to the written to
+    struct filedescriptor* fd;
+    fd = ft_get(curthread->ft, fdn);
+    if (fd == NULL) {
+        return EBADF;
+    }
 
-(void) fd;
-(void) buf;
-(void) nbytes;
-return 1;
+    // Make sure that the file is opened for writing.
+    switch (O_ACCMODE & fd->mode) {
+        case O_WRONLY:
+        case O_RDWR:
+            break;
+        default:
+            return EBADF;
+    }
 
+    int ret = 0;
+
+    //The uio structure for vfs_* operations
+    struct uio u;
+    // Set up the uio for writing.
+    u.uio_iovec.iov_un.un_ubase = buf;
+    u.uio_iovec.iov_len = nbytes;
+    u.uio_offset = fd->offset;
+    u.uio_resid = nbytes;
+    u.uio_segflg = UIO_SYSSPACE;
+    u.uio_rw = UIO_WRITE;
+    u.uio_space = NULL;
+
+    int spl;
+    spl = splhigh();
+    // Write
+    ret = VOP_WRITE(fd->fdvnode, &u);
+    splx(spl);
+    if (ret) {
+        return ret;
+    }
+    ret = nbytes - u.uio_resid;
+    return ret;
 }
-
-
 #endif /* OPT_A2 */
 
 

@@ -21,56 +21,56 @@
  *
  * Calls vfs_open on progname and thus may destroy it.
  */
-int
-runprogram(char *progname)
-{
-	struct vnode *v;
-	vaddr_t entrypoint, stackptr;
-	int result;
 
-	/* Open the file. */
-	result = vfs_open(progname, O_RDONLY, &v);
-	if (result) {
-		return result;
-	}
+int runprogram(char *progname, char ** args, unsigned long nargs) {
+    (void) args;
+    (void) nargs;
+    struct vnode *v;
+    vaddr_t entrypoint, stackptr;
+    int result;
 
-	/* We should be a new thread. */
-	assert(curthread->t_vmspace == NULL);
+    /* Open the file. */
+    result = vfs_open(progname, O_RDONLY, &v);
+    if (result) {
+        return result;
+    }
 
-	/* Create a new address space. */
-	curthread->t_vmspace = as_create();
-	if (curthread->t_vmspace==NULL) {
-		vfs_close(v);
-		return ENOMEM;
-	}
+    /* We should be a new thread. */
+    assert(curthread->t_vmspace == NULL);
 
-	/* Activate it. */
-	as_activate(curthread->t_vmspace);
+    /* Create a new address space. */
+    curthread->t_vmspace = as_create();
+    if (curthread->t_vmspace == NULL) {
+        vfs_close(v);
+        return ENOMEM;
+    }
 
-	/* Load the executable. */
-	result = load_elf(v, &entrypoint);
-	if (result) {
-		/* thread_exit destroys curthread->t_vmspace */
-		vfs_close(v);
-		return result;
-	}
+    /* Activate it. */
+    as_activate(curthread->t_vmspace);
 
-	/* Done with the file now. */
-	vfs_close(v);
+    /* Load the executable. */
+    result = load_elf(v, &entrypoint);
+    if (result) {
+        /* thread_exit destroys curthread->t_vmspace */
+        vfs_close(v);
+        return result;
+    }
 
-	/* Define the user stack in the address space */
-	result = as_define_stack(curthread->t_vmspace, &stackptr);
-	if (result) {
-		/* thread_exit destroys curthread->t_vmspace */
-		return result;
-	}
+    /* Done with the file now. */
+    vfs_close(v);
 
-	/* Warp to user mode. */
-	md_usermode(0 /*argc*/, NULL /*userspace addr of argv*/,
-		    stackptr, entrypoint);
-	
-	/* md_usermode does not return */
-	panic("md_usermode returned\n");
-	return EINVAL;
+    /* Define the user stack in the address space */
+    result = as_define_stack(curthread->t_vmspace, &stackptr);
+    if (result) {
+        /* thread_exit destroys curthread->t_vmspace */
+        return result;
+    }
+
+    /* Warp to user mode. */
+    md_usermode(0 /*argc*/, NULL /*userspace addr of argv*/, stackptr, entrypoint);
+
+    /* md_usermode does not return */
+    panic("md_usermode returned\n");
+    return EINVAL;
 }
 

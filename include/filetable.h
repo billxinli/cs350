@@ -18,17 +18,45 @@
  *     ft_destroy - destroy the filetable.
  */
 
-// Structure of the filetable
-struct filetable;
-
 // Structure of the filedescriptor
 struct filedescriptor;
 
+struct filedescriptor {
+    //The name/location of the fd, testing only;
+    char *location;
+    //The file descriptor number
+    int fdn;
+    //The mode of the file descriptor in question
+    int mode;
+    //The offset
+    int offset;
+    //The vnode
+    struct vnode* fdvnode;
+};
+
+
+
+// Structure of the filetable
+
+struct filetable {
+    //The table of file descriptors
+    struct array *filedescriptor;
+    //The list of freed fd index
+    struct queue *nextfiledescriptor;
+    //The size of the filetable
+    int size;
+};
+
+
+
+
 struct filetable *ft_create();
+//PRACTICE SAFE SEX PEOPLE!
+int ft_attachstds(struct filetable *ft);
 int ft_size(struct filetable *ft);
 struct filedescriptor *ft_get(struct filetable *ft, int fti);
 int ft_add(struct filetable* ft, struct filedescriptor* fdn);
 int ft_remove(struct filetable* ft, int fti);
 int ft_destroy(struct filetable* ft);
-
+void ft_test(struct filetable* ft);
 #endif /* _FILETABLE_H_ */

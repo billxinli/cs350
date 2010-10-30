@@ -1,0 +1,107 @@
+/*
+Name
+read - read data from file
+
+Library
+Standard C Library (libc, -lc)
+
+Synopsis
+#include <unistd.h>
+
+int
+read(int fd, void *buf, size_t buflen);
+
+Description
+read reads up to buflen bytes from the file specified by fd, at the location in the file specified by the current seek position of the file, and stores them in the space pointed to by buf. The file must be open for reading.
+
+The current seek position of the file is advanced by the number of bytes read.
+
+Each read (or write) operation is atomic relative to other I/O to the same file.
+
+Return Values
+The count of bytes read is returned. This count should be positive. A return value of 0 should be construed as signifying end-of-file. On error, read returns -1 and sets errno to a suitable error code for the error condition encountered.
+
+Note that in some cases, particularly on devices, fewer than buflen (but greater than zero) bytes may be returned. This depends on circumstances and does not necessarily signify end-of-file.
+
+Errors
+The following error codes should be returned under the conditions given. Other error codes may be returned for other errors not mentioned here.
+     	 
+    EBADF 	fd is not a valid file descriptor, or was not opened for reading.
+    EFAULT 	Part or all of the address space pointed to by buf is invalid.
+    EIO 	A hardware I/O error occurred reading the data.
+ */
+
+
+#include "opt-A2.h"
+
+#if OPT_A2
+#include <types.h>
+#include <kern/errno.h>
+#include <kern/unistd.h>
+#include <lib.h>
+#include <filetable.h>
+#include <../arch/mips/include/spl.h>
+#include <curthread.h>
+#include <thread.h>
+#include <uio.h>
+#include <vfs.h>
+#include <vnode.h>
+
+int sys_read(int fdn, void *buf, size_t nbytes) {
+
+
+    //Check for Bad memory reference.
+    if (!buf) {
+        return EFAULT;
+    }
+    //Get the file descriptor from the opened list of file descriptors that the current thread has, based on the fdn given.
+    //The filedescriptor to the written to
+    struct filedescriptor* fd;
+    fd = ft_get(curthread->ft, fdn);
+    if (fd == NULL) {
+        return EBADF;
+    }
+
+    // Make sure that the file is opened for writing.
+    switch (O_ACCMODE & fd->mode) {
+        case O_RDONLY:
+        case O_RDWR:
+            break;
+        default:
+            return (EBADF);
+    }
+
+    int ret = 0;
+
+    //The uio structure for vfs_* operations
+    struct uio u;
+    // Set up the uio for reading.
+    u.uio_iovec.iov_un.un_ubase = buf;
+    u.uio_iovec.iov_len = nbytes;
+    u.uio_offset = fd->offset;
+    u.uio_resid = nbytes;
+    u.uio_segflg = UIO_SYSSPACE;
+    u.uio_rw = UIO_READ;
+    u.uio_space = curthread->t_vmspace;
+
+    int spl;
+    spl = splhigh();
+
+    ret = VOP_READ(fd->fdvnode, &u);
+
+    splx(spl);
+    if (ret) {
+        return ret;
+    }
+
+    ret = nbytes - u.uio_resid;
+    return ret;
+
+}
+
+
+
+
+#endif /* OPT_A2 */
+
+

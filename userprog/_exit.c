@@ -23,7 +23,7 @@ _exit does not return.
 #include <lib.h>
 
 void sys__exit(int exitcode){
-	kprintf("[SYSCALL] exiting with %d \n", exitcode);
+	kprintf("[SYSCALL NOT CORRECT, PLEASE FIX] exiting with %d \n", exitcode);
 	thread_exit();
 }
 

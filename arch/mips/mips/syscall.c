@@ -28,8 +28,6 @@
  * (In fact, we recommend you don't use 64-bit quantities at all. See arch/mips/include/types.h.)
  */
 
-void sys__exit(int exitcode);
-
 void mips_syscall(struct trapframe *tf) {
 	int callno;
 	int32_t retval;
@@ -76,12 +74,12 @@ void mips_syscall(struct trapframe *tf) {
 		
 	case SYS_read:
 		//5
-		//err = sys_reboot(tf->tf_a0);
+		err = sys_read(tf->tf_a0,(void*) tf->tf_a1, tf->tf_a2);
 		break;
 
 	case SYS_write:
 		//6
-		//err = sys_write(tf->tf_a0, const void *buf, size_t size);
+		err = sys_write(tf->tf_a0,(void*) tf->tf_a1, tf->tf_a2);
 		
 		break;
 

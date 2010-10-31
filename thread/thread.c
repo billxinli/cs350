@@ -15,6 +15,12 @@
 #include <filetable.h>
 #include "opt-synchprobs.h"
 
+#include "opt-A2.h"
+
+#if OPT_A2
+#include <pid.h>
+#endif
+
 /* States a thread can be in. */
 typedef enum {
 	S_RUN,
@@ -60,6 +66,10 @@ thread_create(const char *name)
 
 	thread->t_cwd = NULL;
 	
+	#if OPT_A2
+	  thread->pid = new_pid();
+	#endif
+	
 	// If you add things to the thread structure, be sure to initialize
 	// them here.
         thread->ft = ft_create();
@@ -88,6 +98,10 @@ thread_destroy(struct thread *thread)
 	if (thread->t_stack) {
 		kfree(thread->t_stack);
 	}
+	
+	#if OPT_A2
+	  reclaim_pid(thread->pid);
+	#endif
 
 	kfree(thread->t_name);
 	kfree(thread);

@@ -8,6 +8,11 @@
 /* Get machine-dependent stuff */
 #include <machine/pcb.h>
 
+#include "opt-A2.h"
+#if OPT_A2
+#include <types.h>
+#endif
+
 
 struct addrspace;
 
@@ -20,6 +25,9 @@ struct thread {
 	char *t_name;
 	const void *t_sleepaddr;
 	char *t_stack;
+	#if OPT_A2
+	pid_t pid;
+	#endif
 	
 	/**********************************************************/
 	/* Public thread members - can be used by other code      */

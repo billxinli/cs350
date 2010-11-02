@@ -101,7 +101,7 @@ void mips_syscall(struct trapframe *tf) {
 #if OPT_A2
         case SYS_getpid:
             //11
-            //err = sys_reboot(tf->tf_a0);
+            err = sys_getpid();
             break;
 
 #endif /* OPT_A2 */

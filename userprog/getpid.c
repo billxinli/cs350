@@ -12,7 +12,7 @@ currently executing thread
 #include <syscall.h>
 #include <curthread.h>
 
-pid_t getpid() {
+pid_t sys_getpid() {
     return curthread->pid;
 }
 

@@ -71,6 +71,7 @@ thread_create(const char *name)
 	  thread->pid = new_pid();
 	  thread->parent = NULL;
 	  thread->children = NULL;
+	  thread->exit_status = -1; //will be changed if _exit() is called
 	#endif
 	
 	// If you add things to the thread structure, be sure to initialize
@@ -111,11 +112,24 @@ thread_destroy(struct thread *thread)
 	    kfree(temp);
 	}
 	
+	int pid_update_success = 0;
+	for (struct child_table *p = curthread->parent->children; p != NULL) {
+	    if (p->pid == curthread->pid) {
+	        pid_update_success = 1;
+	        p->finished = 1;
+	        p->exit_code = curthread->exit_status;
+	        break;
+	    }
+	}
+	assert(pid_update_success);
+	
 	if (curthread->parent == NULL) {
 	    pid_free(curthread->pid);
 	} else {
 	    pid_process_exit(curthread->pid);
 	}
+	
+	thread_wakeup((void *) curthread->pid);
 	#endif
 
 	kfree(thread->t_name);

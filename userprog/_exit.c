@@ -20,10 +20,11 @@ _exit does not return.
 #include <kern/errno.h>
 #include <kern/unistd.h>
 #include <thread.h>
+#include <curthread.h>
 #include <lib.h>
 
 void sys__exit(int exitcode){
-	kprintf("[SYSCALL NOT CORRECT, PLEASE FIX] exiting with %d \n", exitcode);
+	curthread->exit_status = exitcode;
 	thread_exit();
 }
 

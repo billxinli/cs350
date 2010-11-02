@@ -16,6 +16,7 @@ void sys__exit(int exitcode);
 int sys_write(int *retval, int filehandle, const void *buf, size_t size);
 int sys_read(int *retval, int filehandle, const void *buf, size_t size);
 pid_t sys_getpid();
+int sys_waitpid(pid_t PID, int *status, int options);
 #endif
 
 

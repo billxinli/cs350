@@ -30,6 +30,7 @@ struct thread {
 	pid_t pid;
 	struct thread *parent;
 	struct child_table *children;
+	int exit_status;
 	#endif
 	
 	/**********************************************************/

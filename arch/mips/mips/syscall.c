@@ -67,7 +67,7 @@ void mips_syscall(struct trapframe *tf) {
 
         case SYS_waitpid:
             //3
-            //err = sys_reboot(tf->tf_a0);
+            err = sys_waitpid(&retval, tf->tf_a0);
             break;
 
         case SYS_open:

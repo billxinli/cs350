@@ -62,6 +62,7 @@ pid_t new_pid() {
 
 //"private" function
 void pid_change_status(pid_t x, int and_mask) {
+    int spl = splhigh();
     assert(unavailable_pids != NULL);
     if (unavailable_pids->pid == x) {
         unavailable_pids->status &= and_mask;
@@ -98,6 +99,7 @@ void pid_change_status(pid_t x, int and_mask) {
         }
         assert(found);
     }
+    splx(spl);
 }
 
 /*
@@ -117,7 +119,7 @@ void pid_process_exit(pid_t x) {
 }
 
 /*
-recycles the pid
+recycles the pid; used when a thread with no parent exits
 */
 void pid_free(pid_t x) {
     pid_change_status(x, PID_FREE);

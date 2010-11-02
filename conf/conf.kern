@@ -392,6 +392,7 @@ file      userprog/_exit.c
 
 file      userprog/getpid.c
 file      thread/pid.c
+file      userprog/waitpid.c
 
 #
 # Virtual memory system

@@ -6,7 +6,8 @@
 #define __CHILD_TABLE__
 struct child_table {
     pid_t pid;
-    int finished;
+    int finished; //failsafe for if someone uses -1 as an exit code
+    int exit_code;
     struct child_table *next;
 }
 #endif

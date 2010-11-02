@@ -11,6 +11,7 @@
 #include "opt-A2.h"
 #if OPT_A2
 #include <types.h>
+#include <child_table.h>
 #endif
 
 
@@ -27,6 +28,8 @@ struct thread {
 	char *t_stack;
 	#if OPT_A2
 	pid_t pid;
+	struct thread *parent;
+	struct child_table *children;
 	#endif
 	
 	/**********************************************************/

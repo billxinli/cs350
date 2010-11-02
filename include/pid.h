@@ -4,6 +4,8 @@
 #include <types.h>
 
 pid_t new_pid();
-void reclaim_pid(pid_t x);
+void pid_process_exit(pid_t x);
+void pid_parent_done(pid_t x);
+void pid_free(pid_t x);
 
 #endif

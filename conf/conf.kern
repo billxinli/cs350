@@ -390,6 +390,9 @@ file      userprog/read.c
 file      userprog/write.c
 file      userprog/_exit.c
 
+file      userprog/getpid.c
+file      thread/pid.c
+
 #
 # Virtual memory system
 # (you will probably want to add stuff here while doing the VM assignment)

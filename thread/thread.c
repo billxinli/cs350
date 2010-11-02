@@ -19,6 +19,7 @@
 
 #if OPT_A2
 #include <pid.h>
+#include <child_table.h>
 #endif
 
 /* States a thread can be in. */
@@ -68,6 +69,8 @@ thread_create(const char *name)
 	
 	#if OPT_A2
 	  thread->pid = new_pid();
+	  thread->parent = NULL;
+	  thread->children = NULL;
 	#endif
 	
 	// If you add things to the thread structure, be sure to initialize
@@ -100,7 +103,19 @@ thread_destroy(struct thread *thread)
 	}
 	
 	#if OPT_A2
-	  reclaim_pid(thread->pid);
+	kfree(thread->children);
+	for (struct child_table *p = curthread->children; p != NULL;) {
+	    struct child_table *temp = p;
+	    pid_parent_done(p->pid);
+	    p = p->next;
+	    kfree(temp);
+	}
+	
+	if (curthread->parent == NULL) {
+	    pid_free(curthread->pid);
+	} else {
+	    pid_process_exit(curthread->pid);
+	}
 	#endif
 
 	kfree(thread->t_name);

@@ -10,6 +10,7 @@ currently executing thread
 #include <types.h>
 #include <thread.h>
 #include <syscall.h>
+#include <curthread.h>
 
 pid_t getpid() {
     return curthread->pid;

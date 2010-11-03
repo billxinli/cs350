@@ -4,6 +4,7 @@
 #include "opt-A2.h"
 #if OPT_A2
 #include <types.h>
+#include <machine/trapframe.h>
 #endif
 
 /*
@@ -19,7 +20,8 @@ int sys_open(int *retval, char *filename, int flags, int modes);
 int sys_close(int *retval, int fdn);
 pid_t sys_getpid();
 int sys_waitpid(pid_t PID, int *status, int options);
-pid_t fork();
+pid_t fork(struct trapframe *tf);
+void md_forkentry(struct trapframe *tf);
 #endif
 
 

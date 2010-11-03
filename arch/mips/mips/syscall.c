@@ -4,6 +4,7 @@
 #include <machine/pcb.h>
 #include <machine/spl.h>
 #include <machine/trapframe.h>
+#include <machine/specialreg.h>
 #include <kern/callno.h>
 #include <syscall.h>
 #include "opt-A2.h"
@@ -62,7 +63,7 @@ void mips_syscall(struct trapframe *tf) {
 
         case SYS_fork:
             //2
-            err = sys_fork();
+            err = sys_fork(tf);
             break;
 
         case SYS_waitpid:
@@ -134,11 +135,16 @@ void mips_syscall(struct trapframe *tf) {
 }
 
 void md_forkentry(struct trapframe *tf) {
-    /*
-     * This function is provided as a reminder. You need to write both it and the code that calls it.
-     *
-     * Thus, you can trash it and do things another way if you prefer.
-     */
-
-    (void) tf;
+    #if OPT_A2
+    assert(curspl == 0);
+    struct trapframe my_trap = *tf;
+    my_trap.tf_v0 = 0; //set return value to 0
+    my_trap.tf_status = CST_IRQMASK | CST_IEp | CST_KUp; //not sure if this is necessary
+    ///tf_vaddr might need to be changed too, but I don't think so
+    ///tf_sp might also need to be changed
+    my_trap->epc += 4; //increment program counter
+    mips_usermode(&my_trap);
+    #else
+    (void *) tf;
+    #endif
 }

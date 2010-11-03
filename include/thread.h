@@ -26,16 +26,17 @@ struct thread {
 	char *t_name;
 	const void *t_sleepaddr;
 	char *t_stack;
+	
+	/**********************************************************/
+	/* Public thread members - can be used by other code      */
+	/**********************************************************/
+	
 	#if OPT_A2
 	pid_t pid;
 	struct thread *parent;
 	struct child_table *children;
 	int exit_status;
 	#endif
-	
-	/**********************************************************/
-	/* Public thread members - can be used by other code      */
-	/**********************************************************/
 	
 	/*
 	 * This is public because it isn't part of the thread system,

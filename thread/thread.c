@@ -21,7 +21,6 @@
 #include <pid.h>
 #include <child_table.h>
 #endif
-
 /* States a thread can be in. */
 typedef enum {
 	S_RUN,

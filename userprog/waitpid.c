@@ -7,7 +7,7 @@
 #include <kern/errno.h>
 #include <lib.h>
 
-int waitpid(pid_t PID, int *status, int options) {
+int sys_waitpid(pid_t PID, int *status, int options) {
     if (options != 0) {
         errno = EINVAL;
         return -1;

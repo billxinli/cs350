@@ -31,9 +31,7 @@ The following error codes should be returned under the conditions given. Other e
     EIO 	A hardware I/O error occurred reading the data.
  */
 
-
 #include "opt-A2.h"
-
 #if OPT_A2
 #include <types.h>
 #include <kern/errno.h>
@@ -48,7 +46,6 @@ The following error codes should be returned under the conditions given. Other e
 #include <vnode.h>
 
 int sys_read(int *retval, int fdn, void *buf, size_t nbytes) {
-
 
     //Check for Bad memory reference.
     if (!buf) {
@@ -71,37 +68,22 @@ int sys_read(int *retval, int fdn, void *buf, size_t nbytes) {
             return EBADF;
     }
 
-    //The uio structure for vfs_* operations
-    struct uio u;
-    // Set up the uio for reading.
-    u.uio_iovec.iov_un.un_ubase = buf;
-    u.uio_iovec.iov_len = nbytes;
-    u.uio_resid = nbytes;
-    u.uio_offset = fd->offset;
-    u.uio_segflg = UIO_USERSPACE;
-    u.uio_rw = UIO_READ;
-    u.uio_space = curthread->t_vmspace;
+    struct uio *u= kmalloc(sizeof (struct uio));
+    mk_kuio(u, (void *) buf, nbytes, fd->offset, UIO_READ);
+
     int sizeread = 0;
+    
     //int spl;
     //spl = splhigh();
-
-    sizeread = VOP_READ(fd->fdvnode, &u);
-
+    sizeread = VOP_READ(fd->fdvnode, u);
     //splx(spl);
     if (sizeread) {
         return sizeread;
     }
-
-    sizeread = nbytes - u.uio_resid;
-
+    sizeread = nbytes - u->uio_resid;
     *retval = sizeread;
-
+    fd->offset += sizeread;
     return 0;
 }
 
-
-
-
 #endif /* OPT_A2 */
-
-

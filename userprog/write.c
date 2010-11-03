@@ -39,7 +39,6 @@ EIO 	A hardware I/O error occurred writing the data.
  */
 
 #include "opt-A2.h"
-
 #if OPT_A2
 #include <types.h>
 #include <kern/errno.h>
@@ -75,31 +74,23 @@ int sys_write(int *retval, int fdn, void *buf, size_t nbytes) {
             return EBADF;
     }
 
-    int sizeread = 0;
-
-    //The uio structure for vfs_* operations
-    struct uio u;
-    // Set up the uio for writing.
-    u.uio_iovec.iov_un.un_ubase = buf;
-    u.uio_iovec.iov_len = nbytes;
-    u.uio_offset = fd->offset;
-    u.uio_resid = nbytes;
-    u.uio_segflg = UIO_SYSSPACE;
-    u.uio_rw = UIO_WRITE;
-    u.uio_space = NULL;
+    int sizewrite = 0;
+    struct uio *u = kmalloc(sizeof (struct uio));
+    mk_kuio(u, (void *) buf, nbytes, fd->offset, UIO_WRITE);
 
     int spl;
     spl = splhigh();
     // Write
-    sizeread = VOP_WRITE(fd->fdvnode, &u);
+    sizewrite = VOP_WRITE(fd->fdvnode, u);
     splx(spl);
-    if (sizeread) {
-        return sizeread;
+    if (sizewrite) {
+        return sizewrite;
     }
-    sizeread = nbytes - u.uio_resid;
-    *retval = sizeread;
+    sizewrite = nbytes - u->uio_resid;
+    *retval = sizewrite;
+
+    fd->offset += sizewrite;
+
     return 0;
 }
 #endif /* OPT_A2 */
-
-

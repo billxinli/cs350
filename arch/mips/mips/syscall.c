@@ -72,7 +72,7 @@ void mips_syscall(struct trapframe *tf) {
 
         case SYS_open:
             //4
-            err = sys_open((char *) tf->tf_a0, tf->tf_a1);
+            err = sys_open(&retval, (char *) tf->tf_a0, (int) tf->tf_a1, (int) tf->tf_a2);
             break;
 
         case SYS_read:
@@ -88,7 +88,7 @@ void mips_syscall(struct trapframe *tf) {
 
         case SYS_close:
             //7
-            err = sys_close(tf->tf_a0);
+            err = sys_close(&retval, tf->tf_a0);
 
             break;
 

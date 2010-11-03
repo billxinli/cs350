@@ -11,7 +11,7 @@
  *
  * Functions: 
  *     ft_create  - allocate a new filetable object. Returns NULL if out of memory.
- *     ft_size    - returns the size of the filetable.
+ *     ft_array_size    - returns the size of the filetable.
  *     ft_get     - returns the fti th filedescriptor from the filetable.
  *     ft_add     - add a filedescriptor to the filetable.
  *     ft_remove  - remove the fti th filedescriptor from the filetable.
@@ -23,8 +23,6 @@
 struct filedescriptor;
 
 struct filedescriptor {
-    //The name/location of the fd, testing only;
-    char *location;
     //The file descriptor number
     int fdn;
     //The mode of the file descriptor in question
@@ -49,10 +47,13 @@ struct filetable {
 
 struct filetable *ft_create();
 int ft_attachstds(struct filetable *ft);
+int ft_array_size(struct filetable *ft);
 int ft_size(struct filetable *ft);
 struct filedescriptor *ft_get(struct filetable *ft, int fti);
 int ft_add(struct filetable* ft, struct filedescriptor* fdn);
+int ft_set(struct filetable* ft, struct filedescriptor* fdn, int fti);
 int ft_remove(struct filetable* ft, int fti);
 int ft_destroy(struct filetable* ft);
 void ft_test(struct filetable* ft);
+void ft_test_list(struct filetable* ft);
 #endif /* _FILETABLE_H_ */

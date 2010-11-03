@@ -32,7 +32,6 @@ error codes may be returned for other errors not mentioned here.
  */
 
 #include "opt-A2.h"
-
 #if OPT_A2
 #include <types.h>
 #include <kern/errno.h>
@@ -46,16 +45,9 @@ error codes may be returned for other errors not mentioned here.
 #include <vfs.h>
 #include <vnode.h>
 
-int sys_close(int fdn) {
-
+int sys_close(int *retval, int fdn) {
     ft_remove(curthread->ft, fdn);
-
-    return 1;
-
+    *retval = 0;
+    return 0;
 }
-
-
-
 #endif /* OPT_A2 */
-
-

@@ -67,9 +67,8 @@ The following error codes should be returned under the conditions given. Other e
     EFAULT 	filename was an invalid pointer.
  */
 
-//#include "opt-A2.h"
-
-//#if OPT_A2
+#include "opt-A2.h"
+#if OPT_A2
 #include <types.h>
 #include <kern/errno.h>
 #include <kern/unistd.h>
@@ -82,13 +81,11 @@ The following error codes should be returned under the conditions given. Other e
 #include <vfs.h>
 #include <vnode.h>
 
-int sys_open(char *filename, int flags) {
-
+int sys_open(int *retval, char *filename, int flags, int mode) {
+    (void) mode;
     int result;
-
-    struct filedescriptor* fd;
-    fd = kmalloc(sizeof (struct filedescriptor));
-
+    struct filedescriptor* fd = kmalloc(sizeof (struct filedescriptor));
+    fd->fdvnode = kmalloc(sizeof (struct vnode));
     char *kfilename = kstrdup(filename);
     result = vfs_open(kfilename, flags, &fd->fdvnode);
     if (result) {
@@ -97,17 +94,9 @@ int sys_open(char *filename, int flags) {
     }
     kfree(kfilename);
     fd->offset = 0;
-    fd->location = filename;
     fd->mode = flags;
-
     result = ft_add(curthread->ft, fd);
-
-    return result;
-
+    *retval = result;
+    return 0;
 }
-
-
-
-//#endif /* OPT_A2 */
-
-
+#endif /* OPT_A2 */

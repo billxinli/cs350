@@ -1,5 +1,6 @@
 #if OPT_A2
 
+#include <kern/unistd.h>
 #include <pid.h>
 #include <child_table.h>
 #include <thread.h>

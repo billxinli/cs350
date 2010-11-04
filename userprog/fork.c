@@ -1,5 +1,6 @@
 #if OPT_A2
 
+#include <kern/unistd.h>
 #include <addrspace.h>
 #include <types.h>
 #include <thread.h>

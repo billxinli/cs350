@@ -64,6 +64,11 @@ void mips_syscall(struct trapframe *tf) {
         case SYS_fork:
             //2
             err = sys_fork(tf);
+            //the below is necessary since fork actually returns a value
+            if (err != -1) {
+                retval = err;
+                err = 0;
+            }
             break;
 
         case SYS_waitpid:

@@ -1,5 +1,6 @@
 #if OPT_A2
 
+#include <addrspace.h>
 #include <types.h>
 #include <thread.h>
 #include <curthread.h>
@@ -36,7 +37,8 @@ pid_t sys_fork(struct trapframe *tf) {
     be using t_stack outside of thread functions, I've decided to just access the
     variable directly instead of making a new function that will only ever be used here
     */
-    for (int i = 0; i < STACK_SIZE; i++) {
+    int i;
+    for (i = 0; i < STACK_SIZE; i++) {
         child->t_stack[i] = curthread->t_stack[i];
     }
     
@@ -52,8 +54,9 @@ pid_t sys_fork(struct trapframe *tf) {
     //we also don't need to copy t_cwd since it's already been coppied when thread_fork() was called
     as_copy(curthread->t_vmspace, &child->t_vmspace); //copy the data to the child process's new address space
     //now copy the file table
-    for (int i = 0; i < ft_size(curthread->ft); i++) {
-        ft_add(child->ft, ft_get(curthread->ft, i));
+    int j;
+    for (j = 0; j < ft_size(curthread->ft); j++) {
+        ft_add(child->ft, ft_get(curthread->ft, j));
     }
     
     

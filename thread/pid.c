@@ -6,6 +6,7 @@ freeing these IDs for re-use when the thread exits. These operations are atomic.
 #include "opt-A2.h"
 #if OPT_A2
 
+#include <types.h>
 #include <lib.h>
 #include <types.h>
 #include <pid.h>
@@ -19,17 +20,17 @@ freeing these IDs for re-use when the thread exits. These operations are atomic.
 struct pid_clist {
     pid_t pid;
     int status;
-    struct pid_list *next;
-}
+    struct pid_clist *next;
+};
 
 struct pid_list {
     pid_t pid;
     struct pid_list *next;
-}
+};
 
 unsigned int unused_pids = 1;
-struct pid_list recycled_pids;
-struct pid_list unavailable_pids;
+struct pid_list *recycled_pids;
+struct pid_clist *unavailable_pids;
 
 /*
 Find a pid for a new process
@@ -38,7 +39,7 @@ pid_t new_pid() {
     int spl = splhigh();
     if (recycled_pids == NULL) {
         assert(unused_pids < 0x7FFFFFFF); //can't even happen with sys161's available memory
-        struct pid_clist *new_entry = kmalloc(sizeof(pid_clist));
+        struct pid_clist *new_entry = kmalloc(sizeof(struct pid_clist));
         new_entry->pid = unused_pids;
         new_entry->status = PID_NEW;
         new_entry->next = unavailable_pids;
@@ -49,7 +50,7 @@ pid_t new_pid() {
     } else {
         struct pid_list *first = recycled_pids;
         recycled_pids = recycled_pids->next;
-        struct pid_clist *new_entry = kmalloc(sizeof(pid_clist));
+        struct pid_clist *new_entry = kmalloc(sizeof(struct pid_clist));
         new_entry->pid = first->pid;
         new_entry->status = PID_NEW;
         new_entry->next = unavailable_pids;
@@ -68,10 +69,10 @@ void pid_change_status(pid_t x, int and_mask) {
         unavailable_pids->status &= and_mask;
         if (unavailable_pids->status == PID_FREE) {
             //add pid to recycled_pids list
-            struct pid_list *new_entry = kmalloc(sizeof(pid_list));
+            struct pid_list *new_entry = kmalloc(sizeof(struct pid_list));
             new_entry->pid = x;
             new_entry->next = recycled_pids;
-            reycled_pids = new_entry;
+            recycled_pids = new_entry;
             //remove pid from unavailable_pids list
             struct pid_clist *temp = unavailable_pids;
             unavailable_pids = unavailable_pids->next;
@@ -84,9 +85,9 @@ void pid_change_status(pid_t x, int and_mask) {
             if (p->next->pid == x) {
                 found = 1;
                 p->next->status &= and_mask;
-                if (p->next->pid->status == PID_FREE) {
+                if (p->next->status == PID_FREE) {
                     //add pid to recycled_pids list
-                    struct pid_list *new_entry = kmalloc(sizeof(pid_list));
+                    struct pid_list *new_entry = kmalloc(sizeof(struct pid_list));
                     new_entry->pid = x;
                     new_entry->next = recycled_pids;
                     recycled_pids = new_entry;

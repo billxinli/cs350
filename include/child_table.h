@@ -9,6 +9,6 @@ struct child_table {
     int finished; //failsafe for if someone uses -1 as an exit code
     int exit_code;
     struct child_table *next;
-}
+};
 #endif
 #endif

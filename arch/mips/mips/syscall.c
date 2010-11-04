@@ -142,7 +142,7 @@ void md_forkentry(struct trapframe *tf) {
     my_trap.tf_status = CST_IRQMASK | CST_IEp | CST_KUp; //not sure if this is necessary
     ///tf_vaddr might need to be changed too, but I don't think so
     ///tf_sp might also need to be changed
-    my_trap->epc += 4; //increment program counter
+    my_trap.tf_epc += 4; //increment program counter
     mips_usermode(&my_trap);
     #else
     (void *) tf;

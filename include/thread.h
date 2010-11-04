@@ -14,7 +14,6 @@
 #include <child_table.h>
 #endif
 
-
 struct addrspace;
 
 struct thread {

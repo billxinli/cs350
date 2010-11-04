@@ -104,7 +104,8 @@ thread_destroy(struct thread *thread)
 	
 	#if OPT_A2
 	kfree(thread->children);
-	for (struct child_table *p = curthread->children; p != NULL;) {
+	struct child_table *p;
+	for (p = curthread->children; p != NULL;) {
 	    struct child_table *temp = p;
 	    pid_parent_done(p->pid);
 	    p = p->next;
@@ -112,12 +113,12 @@ thread_destroy(struct thread *thread)
 	}
 	
 	int pid_update_success = 0;
-	for (struct child_table *p = curthread->parent->children; p != NULL) {
+	for (p = curthread->parent->children; p != NULL;) {
 	    if (p->pid == curthread->pid) {
 	        pid_update_success = 1;
 	        p->finished = 1;
 	        p->exit_code = curthread->exit_status;
-	        break;
+	        p = NULL; //won't let me use break in a for loop, so I'll do this instead
 	    }
 	}
 	assert(pid_update_success);

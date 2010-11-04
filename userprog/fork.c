@@ -28,7 +28,7 @@ pid_t sys_fork(struct trapframe *tf) {
     if (new_child == NULL) {
         splx(spl);
         //error
-        return ENOMEM: 
+        return ENOMEM;
     }
     struct thread *child = NULL;
     

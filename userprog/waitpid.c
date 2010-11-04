@@ -1,3 +1,4 @@
+#include "opt-A2.h"
 #if OPT_A2
 
 #include <kern/unistd.h>

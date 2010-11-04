@@ -145,6 +145,9 @@ void mips_syscall(struct trapframe *tf) {
 
 void md_forkentry(struct trapframe *tf) {
     #if OPT_A2
+    ///DEBUG
+    kprintf("* GOT TO md_forkentry *");
+    ///
     assert(curspl == 0);
     struct trapframe my_trap = *tf;
     my_trap.tf_v0 = 0; //set return value to 0

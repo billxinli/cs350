@@ -33,6 +33,7 @@ pid_t sys_fork(struct trapframe *tf) {
     struct thread *child = NULL;
     
     int result = thread_fork(strcat(child_name, "'s child"), tf, 0, md_forkentry, &child);
+   
     if (result != 0) {
         kfree(new_child);
         splx(spl);

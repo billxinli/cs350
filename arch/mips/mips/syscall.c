@@ -9,6 +9,10 @@
 #include <syscall.h>
 #include "opt-A2.h"
 
+#if OPT_A2
+#include "pid.h"
+#endif
+
 /*
  * System call handler.
  *
@@ -65,7 +69,7 @@ void mips_syscall(struct trapframe *tf) {
             //2
             err = sys_fork(tf);
             //the below is necessary since fork actually returns a value
-            if (err != -1) {
+            if (err >= MIN_PID) {
                 retval = err;
                 err = 0;
             }

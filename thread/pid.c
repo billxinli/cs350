@@ -17,6 +17,8 @@ freeing these IDs for re-use when the thread exits. These operations are atomic.
 #define PID_EXITED 2 //the process has exited, but the parent has not exited or waited on this pid
 #define PID_NEW    3 //neither the process nor its parent have exited
 
+#define MIN_PID 100 //the minimum pid **MUST BE GREATER THAN THE NUMBER OF ERROR CODES**
+
 struct pid_clist {
     pid_t pid;
     int status;
@@ -28,7 +30,7 @@ struct pid_list {
     struct pid_list *next;
 };
 
-unsigned int unused_pids = 1;
+unsigned int unused_pids = MIN_PID;
 struct pid_list *recycled_pids;
 struct pid_clist *unavailable_pids;
 

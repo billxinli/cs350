@@ -14,10 +14,9 @@
 int sys_waitpid(pid_t PID, int *status, int options) {
     int spl = splhigh();
     if (options != 0) {
-        ///errno won't work, so I've commented it out until it's fixed
-        //errno = EINVAL;
         splx(spl);
-        return -1;
+        //error
+        return EINVAL;
     }
     struct child_table *child = NULL;
     struct child_table *p;
@@ -28,10 +27,9 @@ int sys_waitpid(pid_t PID, int *status, int options) {
         }
     }
     if (child == NULL) { //error: pid not in use or is not the pid of a child process
-        ///errno won't work, so I've commented it out until it's fixed
-        //errno = ESRCH;
         splx(spl);
-        return -1;
+        //error
+        return ESRCH;
     }
     
     while (child->finished == 0) {

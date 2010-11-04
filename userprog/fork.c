@@ -1,8 +1,8 @@
 #include "opt-A2.h"
+
 #if OPT_A2
 
 #include <kern/unistd.h>
-#include <addrspace.h>
 #include <types.h>
 #include <thread.h>
 #include <curthread.h>
@@ -12,26 +12,35 @@
 #include <machine/pcb.h>
 #include <machine/spl.h>
 #include <machine/trapframe.h>
+#include <addrspace.h>
+#include <filetable.h>
+
+#ifdef _ERRNO_H_
+fkjldslfjdsklfjskldjf;
+#endif
 
 pid_t sys_fork(struct trapframe *tf) {
     int spl = splhigh();
     char *child_name = kmalloc(sizeof(char) * (strlen(curthread->t_name)+9));
     if (child_name == NULL) {
-        errno = ENOMEM;
+        ///errno won't work, so I've commented it out until it's fixed
+        //errno = ENOMEM;
         return -1;
     }
     child_name = strcpy(child_name, curthread->t_name);
     struct child_table *new_child = kmalloc(sizeof(struct child_table));
     if (new_child == NULL) {
-        errno = ENOMEM;
+        ///errno won't work, so I've commented it out until it's fixed
+        //errno = ENOMEM;
         return -1;
     }
-    thread *child = NULL;
+    struct thread *child = NULL;
     
     int result = thread_fork(strcat(child_name, "'s child"), tf, 0, md_forkentry, &child);
     if (result != 0) {
         kfree(new_child);
-        errno = result;
+        ///errno won't work, so I've commented it out until it's fixed
+        //errno = result;
         return -1;
     }
     /*

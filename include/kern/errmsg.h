@@ -1,3 +1,5 @@
+#include "opt-A2.h"
+
 #ifndef _KERN_ERRMSG_H_
 #define _KERN_ERRMSG_H_
 

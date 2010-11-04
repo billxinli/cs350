@@ -1,6 +1,8 @@
 #include "opt-A2.h"
+
 #if OPT_A2
 
+#include <machine/spl.h>
 #include <kern/unistd.h>
 #include <pid.h>
 #include <child_table.h>
@@ -10,20 +12,25 @@
 #include <lib.h>
 
 int sys_waitpid(pid_t PID, int *status, int options) {
+    int spl = splhigh();
     if (options != 0) {
-        errno = EINVAL;
+        ///errno won't work, so I've commented it out until it's fixed
+        //errno = EINVAL;
+        splx(spl);
         return -1;
     }
-    int spl = splhigh();
     struct child_table *child = NULL;
-    for (struct child_table *p = curthread->children; p != NULL; p = p->next) {
+    struct child_table *p;
+    for (p = curthread->children; p != NULL; p = p->next) {
         if (p->pid == PID) {
             child = p;
             break;
         }
     }
-    if (struct child == NULL) { //error: pid not in use or is not the pid of a child process
-        errno = ESRCH;
+    if (child == NULL) { //error: pid not in use or is not the pid of a child process
+        ///errno won't work, so I've commented it out until it's fixed
+        //errno = ESRCH;
+        splx(spl);
         return -1;
     }
     
@@ -39,7 +46,7 @@ int sys_waitpid(pid_t PID, int *status, int options) {
         curthread->children = curthread->children->next;
         kfree(temp);
     } else {
-        for (struct child_table *p = curthread->children; p != NULL; p = p->next) {
+        for (p = curthread->children; p != NULL; p = p->next) {
             if (p->next->pid == PID) {
                 struct child_table *temp = p->next;
                 p->next = p->next->next;
@@ -49,7 +56,7 @@ int sys_waitpid(pid_t PID, int *status, int options) {
         }
     }
     
-    pid_parent_free(PID);
+    pid_parent_done(PID);
     splx(spl);
     
     return PID;

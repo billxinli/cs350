@@ -22,7 +22,7 @@
  * Calls vfs_open on progname and thus may destroy it.
  */
 
-int runprogram(char *progname, char ** args, unsigned long nargs) {
+int runprogram2(char *progname, char ** args, unsigned long nargs) {
     //   (void) args;
     //  (void) nargs;
     struct vnode *v;
@@ -100,7 +100,7 @@ int runprogram(char *progname, char ** args, unsigned long nargs) {
     return EINVAL;
 }
 
-int runprogram2(char *progname, char ** args, unsigned long nargs) {
+int runprogram(char *progname, char ** args, unsigned long nargs) {
     //   (void) args;
     //  (void) nargs;
     struct vnode *v;

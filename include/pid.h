@@ -1,6 +1,8 @@
 #include "opt-A2.h"
 #if OPT_A2
 
+#define MIN_PID 100 //the minimum pid **MUST BE GREATER THAN THE NUMBER OF ERROR CODES**
+
 #include <types.h>
 
 pid_t new_pid();

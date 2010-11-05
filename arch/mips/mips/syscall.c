@@ -10,7 +10,9 @@
 #include "opt-A2.h"
 
 #if OPT_A2
-#include "pid.h"
+#include <pid.h>
+#include <thread.h>
+#include <curthread.h>
 #endif
 
 /*

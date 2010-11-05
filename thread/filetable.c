@@ -170,6 +170,12 @@ int ft_size(struct filetable *ft) {
  * This gets the file descriptor from a file table and the given file descriptor id.
  */
 struct filedescriptor *ft_get(struct filetable *ft, int fti) {
+
+    if(fti<0){
+        return NULL;
+    }
+
+
     //Since the stds are not attached to the thread, if the fd <=2 is requested,
     //then we will attach the stds to the thread.
     if (fti < 3) {

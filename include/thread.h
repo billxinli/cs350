@@ -35,6 +35,10 @@ struct thread {
 	struct thread *parent;
 	struct child_table *children;
 	int exit_status;
+	/*
+	 * This is the filetable for the thread.
+	 */
+	struct filetable *ft;
 	#endif
 	
 	/*
@@ -49,11 +53,6 @@ struct thread {
 	 * and is manipulated by the virtual filesystem (VFS) code.
 	 */
 	struct vnode *t_cwd;
-
-	/*
-	 * This is the filetable for the thread.
-	 */
-	struct filetable *ft;
 };
 
 /* Call once during startup to allocate data structures. */

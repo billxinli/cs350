@@ -7,7 +7,7 @@
 #include <vm.h>
 #include <thread.h>
 #include <curthread.h>
-#include "opt-A2.h";
+#include "opt-A2.h"
 
 extern u_int32_t curkstack;
 
@@ -45,6 +45,8 @@ kill_curthread(u_int32_t epc, unsigned code, u_int32_t vaddr)
 	
 	#if OPT_A2
 	//instead of panic, exit the thread
+	DEBUG(DB_THREADS, "Thread `%s` calling kill_curthread", curthread->t_name);
+	DEBUG(DB_A2FC, "Thread `%s` calling kill_curthread", curthread->t_name);
 	thread_exit();
 	#else
 	/*

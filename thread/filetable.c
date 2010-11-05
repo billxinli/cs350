@@ -1,7 +1,8 @@
 /*
  * Filetables for the thread. See filetable.h for details.
  */
-
+#include "opt-A2.h"
+#if OPT_A2
 #include <types.h>
 #include <kern/errno.h>
 #include <kern/unistd.h>
@@ -49,6 +50,12 @@ struct filetable *ft_create() {
 
     //Return the file table
     return ft;
+}
+
+int ft_copy(struct filetable *ftsrc, struct filetable *fttrg) {
+    (void) ftsrc;
+    (void) fttrg;
+    return 1;
 }
 
 /*
@@ -194,7 +201,6 @@ int ft_set(struct filetable* ft, struct filedescriptor* fd, int fti) {
  * array. This will recover and reuse closed file descriptor ids.
  */
 int ft_add(struct filetable* ft, struct filedescriptor* fd) {
-
     int fdn = 0;
     if (!q_empty(ft->nextfiledescriptor)) {
         //We have recycled file descriptors.
@@ -322,3 +328,5 @@ void ft_test(struct filetable* ft) {
 
     panic("test end");
 }
+
+#endif

@@ -50,6 +50,9 @@ static
 struct thread *
 thread_create(const char *name)
 {
+    #if OPT_A2
+    DEBUG(DB_A2FC, "DEBUG: Thread `%s` calling thread_create to create thread `%s`.\n", curthread->t_name, name);
+    #endif
 	struct thread *thread = kmalloc(sizeof(struct thread));
 	if (thread==NULL) {
 		return NULL;
@@ -89,6 +92,9 @@ static
 void
 thread_destroy(struct thread *thread)
 {
+    #if OPT_A2
+    DEBUG(DB_A2FC, "DEBUG: Thread `%s` calling destroy on thread `%s`.\n", curthread->t_name, thread->t_name);
+    #endif
 	assert(thread != curthread);
 
 	// If you add things to the thread structure, be sure to dispose of
@@ -314,6 +320,9 @@ thread_fork(const char *name,
 	    void (*func)(void *, unsigned long),
 	    struct thread **ret)
 {
+    #if OPT_A2
+    DEBUG(DB_A2FC, "DEBUG: Thread `%s` calling thread_fork.\n", curthread->t_name);
+    #endif
 	struct thread *newguy;
 	int s, result;
 
@@ -416,6 +425,9 @@ static
 void
 mi_switch(threadstate_t nextstate)
 {
+    #if OPT_A2
+    DEBUG(DB_A2FC, "DEBUG: Thread `%s` calling mi_switch.\n", curthread->t_name);
+    #endif
 	struct thread *cur, *next;
 	int result;
 	
@@ -508,6 +520,9 @@ mi_switch(threadstate_t nextstate)
 void
 thread_exit(void)
 {
+    #if OPT_A2
+    DEBUG(DB_A2FC, "DEBUG: Thread `%s` calling thread_exit.\n", curthread->t_name);
+    #endif
 	if (curthread->t_stack != NULL) {
 		/*
 		 * Check the magic number we put on the bottom end of
@@ -647,6 +662,9 @@ void
 mi_threadstart(void *data1, unsigned long data2, 
 	       void (*func)(void *, unsigned long))
 {
+    #if OPT_A2
+    DEBUG(DB_A2FC, "DEBUG: Thread `%s` calling mi_threadstart.\n", curthread->t_name);
+    #endif
 	/* If we have an address space, activate it */
 	if (curthread->t_vmspace) {
 		as_activate(curthread->t_vmspace);

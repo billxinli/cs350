@@ -51,53 +51,63 @@ void mips_syscall(struct trapframe *tf) {
      */
 
     retval = 0;
+    
+    DEBUG(DB_A2FC, "DEBUG: Thread `%s` entering system call.\n", curthread->t_name);
 
     switch (callno) {
 
 #if OPT_A2
         case SYS__exit:
             //0
+            DEBUG(DB_A2FC, "DEBUG: Thread `%s` calling _exit\n", curthread->t_name);
             sys__exit(tf->tf_a0);
             break;
 
         case SYS_execv:
             //1
+            DEBUG(DB_A2FC, "DEBUG: Thread `%s` calling execv.\n", curthread->t_name);
             //err = sys_reboot(tf->tf_a0);
             break;
 
         case SYS_fork:
             //2
+            DEBUG(DB_A2FC, "DEBUG: Thread `%s` calling fork.\n", curthread->t_name);
             err = sys_fork(tf);
             //the below is necessary since fork actually returns a value
             if (err >= MIN_PID) {
                 retval = err;
                 err = 0;
-            }
+            };
             break;
 
         case SYS_waitpid:
             //3
+            DEBUG(DB_A2FC, "DEBUG: Thread `%s` calling waitpid.\n", curthread->t_name);
             err = sys_waitpid((pid_t) tf->tf_a0, &retval, tf->tf_a1);
             break;
 
         case SYS_open:
             //4
+            DEBUG(DB_A2FC, "DEBUG: Thread `%s` calling open.\n", curthread->t_name);
             err = sys_open(&retval, (char *) tf->tf_a0, (int) tf->tf_a1, (int) tf->tf_a2);
             break;
 
         case SYS_read:
             //5
+            DEBUG(DB_A2FC, "DEBUG: Thread `%s` calling read.\n", curthread->t_name);
             err = sys_read(&retval, tf->tf_a0, (void*) tf->tf_a1, tf->tf_a2);
             break;
 
         case SYS_write:
             //6
+            DEBUG(DB_A2FC, "DEBUG: Thread `%s` calling write.\n", curthread->t_name);
             err = sys_write(&retval, tf->tf_a0, (void*) tf->tf_a1, tf->tf_a2);
 
             break;
 
         case SYS_close:
             //7
+            DEBUG(DB_A2FC, "DEBUG: Thread `%s` calling close.\n", curthread->t_name);
             err = sys_close(&retval, tf->tf_a0);
 
             break;
@@ -105,17 +115,24 @@ void mips_syscall(struct trapframe *tf) {
 #endif /* OPT_A2 */
         case SYS_reboot:
             //8
+            #if OPT_A2
+            DEBUG(DB_A2FC, "DEBUG: Thread `%s` calling reboot.\n", curthread->t_name);
+            #endif
             err = sys_reboot(tf->tf_a0);
             break;
 
 #if OPT_A2
         case SYS_getpid:
             //11
+            DEBUG(DB_A2FC, "DEBUG: Thread `%s` calling getpid.\n", curthread->t_name);
             err = sys_getpid();
             break;
 
 #endif /* OPT_A2 */
         default:
+            #if OPT_A2
+            DEBUG(DB_A2FC, "DEBUG: Thread `%s` calling invalid system call.\n", curthread->t_name);
+            #endif
             kprintf("Unknown syscall %d\n", callno);
             err = ENOSYS;
             break;
@@ -145,6 +162,7 @@ void mips_syscall(struct trapframe *tf) {
 
 void md_forkentry(struct trapframe *tf) {
     #if OPT_A2
+    DEBUG(DB_A2FC, "DEBUG: Thread `%s` entering md_forkentry.\n", curthread->t_name);
     ///DEBUG
     kprintf("* GOT TO md_forkentry *");
     ///
@@ -156,6 +174,7 @@ void md_forkentry(struct trapframe *tf) {
     ///tf_sp might also need to be changed
     my_trap.tf_epc += 4; //increment program counter
     mips_usermode(&my_trap);
+    assert(0); //should not get here. mips_usermode does not return
     #else
     (void *) tf;
     #endif

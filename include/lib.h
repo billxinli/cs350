@@ -49,6 +49,8 @@
 #define DB_NET         0x200
 #define DB_NETFS       0x400
 #define DB_KMALLOC     0x800
+#define DB_A2FC       0x1000 //shows messages when entering functions in syscall.c, thread.c, and pcb.c
+#define DB_ALL        0x1fff //all debug messages
 
 extern u_int32_t dbflags;
 

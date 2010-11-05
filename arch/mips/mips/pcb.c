@@ -1,9 +1,14 @@
+#include "opt-A2.h"
+
 #include <types.h>
 #include <lib.h>
 #include <machine/pcb.h>
 #include <machine/spl.h>   // for in_interrupt
 #include <machine/switchframe.h>
 #include <thread.h>
+#if OPT_A2
+#include <curthread.h>
+#endif
 
 /* in switch.S */
 extern void mips_switch(struct pcb *old, struct pcb *nu);
@@ -53,6 +58,9 @@ md_initpcb(struct pcb *pcb, char *stack,
 	   void *data1, unsigned long data2, 
 	   void (*func)(void *, unsigned long))
 {
+    #if OPT_A2
+    DEBUG(DB_A2FC, "DEBUG: Thread `%s` entering md_initpcb.\n", curthread->t_name);
+    #endif
 	/*
 	 * MIPS stacks grow down. What we get passed is just a hunk of
 	 * memory. So get the other end of it.
@@ -117,6 +125,9 @@ md_initpcb(struct pcb *pcb, char *stack,
 void
 md_switch(struct pcb *old, struct pcb *nu)
 {
+    #if OPT_A2
+    DEBUG(DB_A2FC, "DEBUG: Thread `%s` entering md_switch.\n", curthread->t_name);
+    #endif
 	if (old==nu) {
 		return;
 	}

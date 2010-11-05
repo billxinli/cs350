@@ -46,6 +46,11 @@ error codes may be returned for other errors not mentioned here.
 #include <vnode.h>
 
 int sys_close(int *retval, int fdn) {
+
+    if (ft_get(curthread->ft, fdn) == NULL) {
+        return EBADF;
+    }
+
     ft_remove(curthread->ft, fdn);
     *retval = 0;
     return 0;

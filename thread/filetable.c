@@ -6,6 +6,7 @@
 #include <types.h>
 #include <kern/errno.h>
 #include <kern/unistd.h>
+#include <kern/limits.h>
 #include <lib.h>
 #include <array.h>
 #include <queue.h>
@@ -171,7 +172,7 @@ int ft_size(struct filetable *ft) {
  */
 struct filedescriptor *ft_get(struct filetable *ft, int fti) {
 
-    if(fti<0){
+    if (fti < 0) {
         return NULL;
     }
 
@@ -200,6 +201,10 @@ int ft_set(struct filetable* ft, struct filedescriptor* fd, int fti) {
     return 0;
 }
 
+int ft_has_recycled_fd(struct filetable* ft) {
+    return !q_empty(ft->nextfiledescriptor);
+}
+
 /*
  * ft_add()
  * This adds the file descriptor to the file table, it does by checking if there
@@ -207,8 +212,16 @@ int ft_set(struct filetable* ft, struct filedescriptor* fd, int fti) {
  * array. This will recover and reuse closed file descriptor ids.
  */
 int ft_add(struct filetable* ft, struct filedescriptor* fd) {
+
+
+    if (ft_array_size(ft) >= MAX_OPEN) {
+        if (!ft_has_recycled_fd(ft)) {
+            return -1;
+        }
+    }
+
     int fdn = 0;
-    if (!q_empty(ft->nextfiledescriptor)) {
+    if (ft_has_recycled_fd(ft)) {
         //We have recycled file descriptors.
         fdn = (int) q_remhead(ft->nextfiledescriptor);
         fd->fdn = fdn;

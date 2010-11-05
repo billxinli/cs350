@@ -58,14 +58,11 @@ int sys_write(int *retval, int fdn, void *buf, size_t nbytes) {
         return EFAULT;
     }
     //Get the file descriptor from the opened list of file descriptors that the current thread has, based on the fdn given.
-    //The filedescriptor to the written to
-    struct filedescriptor* fd;
-    fd = ft_get(curthread->ft, fdn);
+    struct filedescriptor* fd = ft_get(curthread->ft, fdn);
     if (fd == NULL) {
         return EBADF;
     }
-
-    // Make sure that the file is opened for writing.
+    //Make sure that the file is opened for writing.
     switch (O_ACCMODE & fd->mode) {
         case O_WRONLY:
         case O_RDWR:
@@ -73,24 +70,24 @@ int sys_write(int *retval, int fdn, void *buf, size_t nbytes) {
         default:
             return EBADF;
     }
-
-    int sizewrite = 0;
+    //Make the uio
     struct uio *u = kmalloc(sizeof (struct uio));
     mk_kuio(u, (void *) buf, nbytes, fd->offset, UIO_WRITE);
-
+    //Disable interrupt
     int spl;
     spl = splhigh();
-    // Write
-    sizewrite = VOP_WRITE(fd->fdvnode, u);
+    //Write
+    int sizewrite = VOP_WRITE(fd->fdvnode, u);
     splx(spl);
     if (sizewrite) {
         return sizewrite;
     }
+    //Find the number of bytes written
     sizewrite = nbytes - u->uio_resid;
     *retval = sizewrite;
-
+    //Update the offset
     fd->offset += sizewrite;
-
     return 0;
 }
+
 #endif /* OPT_A2 */

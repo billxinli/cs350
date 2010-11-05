@@ -46,20 +46,16 @@ The following error codes should be returned under the conditions given. Other e
 #include <vnode.h>
 
 int sys_read(int *retval, int fdn, void *buf, size_t nbytes) {
-
     //Check for Bad memory reference.
     if (!buf) {
         return EFAULT;
     }
     //Get the file descriptor from the opened list of file descriptors that the current thread has, based on the fdn given.
-    //The filedescriptor to the written to
-    struct filedescriptor* fd;
-    fd = ft_get(curthread->ft, fdn);
+    struct filedescriptor* fd = ft_get(curthread->ft, fdn);
     if (fd == NULL) {
         return EBADF;
     }
-
-    // Make sure that the file is opened for writing.
+    //Make sure that the file is opened for writing.
     switch (O_ACCMODE & fd->mode) {
         case O_RDONLY:
         case O_RDWR:
@@ -67,21 +63,22 @@ int sys_read(int *retval, int fdn, void *buf, size_t nbytes) {
         default:
             return EBADF;
     }
-
-    struct uio *u= kmalloc(sizeof (struct uio));
+    //Make the uio
+    struct uio *u = kmalloc(sizeof (struct uio));
     mk_kuio(u, (void *) buf, nbytes, fd->offset, UIO_READ);
-
-    int sizeread = 0;
-    
+    //Disable interrupt
     //int spl;
     //spl = splhigh();
-    sizeread = VOP_READ(fd->fdvnode, u);
+    //Read
+    int sizeread = VOP_READ(fd->fdvnode, u);
     //splx(spl);
     if (sizeread) {
         return sizeread;
     }
+    //Find the number of bytes read
     sizeread = nbytes - u->uio_resid;
     *retval = sizeread;
+    //Update the offset
     fd->offset += sizeread;
     return 0;
 }

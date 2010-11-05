@@ -50,4 +50,5 @@ int sys_close(int *retval, int fdn) {
     *retval = 0;
     return 0;
 }
+
 #endif /* OPT_A2 */

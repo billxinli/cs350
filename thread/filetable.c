@@ -52,11 +52,11 @@ struct filetable *ft_create() {
     return ft;
 }
 
-int ft_copy(struct filetable *ftsrc, struct filetable *fttrg) {
-    (void) ftsrc;
-    (void) fttrg;
-    return 1;
-}
+//int ft_copy(struct filetable *ftsrc, struct filetable *fttrg) {
+//    (void) ftsrc;
+//    (void) fttrg;
+//    return 1;
+//}
 
 /*
  * ft_attachstds()

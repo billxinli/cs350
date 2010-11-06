@@ -65,9 +65,11 @@ pid_t new_pid() {
 void pid_change_status(pid_t x, int and_mask) {
     int spl = splhigh();
     assert(unavailable_pids != NULL);
+    DEBUG(0x2000, "DEBUG: pid_change_status (%d)\n");
     if (unavailable_pids->pid == x) {
         unavailable_pids->status &= and_mask;
         if (unavailable_pids->status == PID_FREE) {
+            DEBUG(0x2000, "DEBUG: freeing pid A\n");
             //add pid to recycled_pids list
             struct pid_list *new_entry = kmalloc(sizeof(struct pid_list));
             new_entry->pid = x;
@@ -77,6 +79,7 @@ void pid_change_status(pid_t x, int and_mask) {
             struct pid_clist *temp = unavailable_pids;
             unavailable_pids = unavailable_pids->next;
             kfree(temp);
+            DEBUG(0x2000, "DEBUG: done freeing pid\n");
         }
     } else {
         int found = 0;
@@ -86,6 +89,7 @@ void pid_change_status(pid_t x, int and_mask) {
                 found = 1;
                 p->next->status &= and_mask;
                 if (p->next->status == PID_FREE) {
+                    DEBUG(0x2000, "DEBUG: freeing pid B\n");
                     //add pid to recycled_pids list
                     struct pid_list *new_entry = kmalloc(sizeof(struct pid_list));
                     new_entry->pid = x;
@@ -95,6 +99,7 @@ void pid_change_status(pid_t x, int and_mask) {
                     struct pid_clist *temp = p->next;
                     p->next = p->next->next;
                     kfree(temp);
+                    DEBUG(0x2000, "DEBUG: done freeing pid\n");
                 }
             }
         }

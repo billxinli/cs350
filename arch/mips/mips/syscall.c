@@ -54,7 +54,8 @@ void mips_syscall(struct trapframe *tf) {
 
     retval = 0;
     
-    DEBUG(DB_A2FC, "DEBUG: Thread `%s` entering system call.\n", curthread->t_name);
+    ///DEBUG(DB_A2FC, "DEBUG: Thread `%s` entering system call.\n", curthread->t_name);
+    //commented out the above message to avoid printing a billion messages and taking forever and a half to execute
 
     switch (callno) {
 
@@ -127,7 +128,8 @@ void mips_syscall(struct trapframe *tf) {
 #if OPT_A2
         case SYS_getpid:
             //11
-            DEBUG(DB_A2FC, "DEBUG: Thread `%s` calling getpid.\n", curthread->t_name);
+            ///DEBUG(DB_A2FC, "DEBUG: Thread `%s` calling getpid.\n", curthread->t_name);
+            //commented out about debug to avoid huge number of messages as above
             err = sys_getpid();
             break;
 

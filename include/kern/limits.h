@@ -8,7 +8,7 @@
 #define PATH_MAX   1024
 
 /* Max number of opened files per process */
-#define MAX_OPEN   1024
+#define OPEN_MAX       1024
 
 
 #endif /* _KERN_LIMITS_H_ */

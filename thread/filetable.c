@@ -214,7 +214,7 @@ int ft_has_recycled_fd(struct filetable* ft) {
 int ft_add(struct filetable* ft, struct filedescriptor* fd) {
 
 
-    if (ft_array_size(ft) >= MAX_OPEN) {
+    if (ft_array_size(ft) >= OPEN_MAX) {
         if (!ft_has_recycled_fd(ft)) {
             return -1;
         }

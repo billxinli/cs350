@@ -83,20 +83,16 @@ int runprogram(char *progname, char ** args, unsigned long nargs) {
     }
 
     /* copy the arguments to the proper location on the stack */
-    int* argumentStringLocation = (int) stackptr + 4 + ((nargs + 1) * 4); //begining of where strings will be stored
+    int argumentStringLocation = (int) stackptr + 4 + ((nargs + 1) * 4); //begining of where strings will be stored
     copyout((void *) & nargs, (userptr_t) stackptr, (size_t) 4); //copy argc
-    //copyout((void *)&argumentStringLocation, (userptr_t) (stackptr + 4), (size_t) 4); //copy address of first string into argv[0]
-    //copyoutstr(progname, (userptr_t) argumentStringLocation, (size_t) (strlen(progname) + 1), NULL); //copy programname for first argument
-    //argumentStringLocation += (strlen(progname) + 1);
-
+   
     for (i = 0; i < nargs; i++) {
         copyout((void *) & argumentStringLocation, (userptr_t) (stackptr + 4 + (4 * i)), (size_t) 4); //copy address of string into argv[i+1]
         copyoutstr(args[i], (userptr_t) argumentStringLocation, (size_t) strlen(args[i]), NULL); //copy the argument string
         argumentStringLocation += strlen(args[i]) + 1; //update the location for the next iteration
     }
-    int nullValue = NULL;
+    int *nullValue = NULL;
     copyout((void *) & nullValue, (userptr_t) (stackptr + 4 + (4 * i)), (size_t) 4); //copy null into last position of argv
-
 
     md_usermode(nargs /*argc*/, (userptr_t) (stackptr + 4) /*userspace addr of argv*/, stackptr, entrypoint);
 

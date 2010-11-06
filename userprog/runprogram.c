@@ -24,141 +24,141 @@
  */
 
 #if OPT_A2
+
 int runprogram(char *progname, char ** args, unsigned long nargs) {
-	//   (void) args;
-	//  (void) nargs;
-	struct vnode *v;
-	vaddr_t entrypoint, stackptr;
-	int result;
+    struct vnode *v;
+    vaddr_t entrypoint, stackptr;
+    int result;
 
-	/* Open the file. */
-	result = vfs_open(progname, O_RDONLY, &v);
-	if (result) {
-		return result;
-	}
+    /* Open the file. */
+    result = vfs_open(progname, O_RDONLY, &v);
+    if (result) {
+        return result;
+    }
 
-	/* We should be a new thread. */
-	assert(curthread->t_vmspace == NULL);
+    /* We should be a new thread. */
+    assert(curthread->t_vmspace == NULL);
 
-	/* Create a new address space. */
-	curthread->t_vmspace = as_create();
-	if (curthread->t_vmspace == NULL) {
-		vfs_close(v);
-		return ENOMEM;
-	}
+    /* Create a new address space. */
+    curthread->t_vmspace = as_create();
+    if (curthread->t_vmspace == NULL) {
+        vfs_close(v);
+        return ENOMEM;
+    }
 
-	/* Activate it. */
-	as_activate(curthread->t_vmspace);
+    /* Activate it. */
+    as_activate(curthread->t_vmspace);
+
+    assert(curthread->t_vmspace != NULL);
+
+    /* Load the executable. */
+    result = load_elf(v, &entrypoint);
+    if (result) {
+        /* thread_exit destroys curthread->t_vmspace */
+        vfs_close(v);
+        return result;
+    }
+
+    /* Done with the file now. */
+    vfs_close(v);
+
+    /* Define the user stack in the address space */
+    result = as_define_stack(curthread->t_vmspace, &stackptr);
+    if (result) {
+        /* thread_exit destroys curthread->t_vmspace */
+        return result;
+    }
+
+    /* calculate the size of the stack frame for the main() function */
+    int stackFrameSize = 8; //minimum size for argc=0, argv[0]=NULL
+    unsigned long i;
+    for (i = 0; i < nargs; i++) {
+        stackFrameSize += strlen(args[i]) + 1 + 4; //add the length of each argument, plus the space for the pointer
+    }
+
+    /* Decide the stackpointer address */
+    stackptr -= stackFrameSize;
+    //decrement the stackptr until it is divisible by 8
+    for (; (stackptr % 8) > 0; stackptr--) {
+    }
+
+    /* copy the arguments to the proper location on the stack */
+    int* argumentStringLocation = (int) stackptr + 4 + ((nargs + 1) * 4); //begining of where strings will be stored
+    copyout((void *) & nargs, (userptr_t) stackptr, (size_t) 4); //copy argc
+    //copyout((void *)&argumentStringLocation, (userptr_t) (stackptr + 4), (size_t) 4); //copy address of first string into argv[0]
+    //copyoutstr(progname, (userptr_t) argumentStringLocation, (size_t) (strlen(progname) + 1), NULL); //copy programname for first argument
+    //argumentStringLocation += (strlen(progname) + 1);
+
+    for (i = 0; i < nargs; i++) {
+        copyout((void *) & argumentStringLocation, (userptr_t) (stackptr + 4 + (4 * i)), (size_t) 4); //copy address of string into argv[i+1]
+        copyoutstr(args[i], (userptr_t) argumentStringLocation, (size_t) strlen(args[i]), NULL); //copy the argument string
+        argumentStringLocation += strlen(args[i]) + 1; //update the location for the next iteration
+    }
+    int nullValue = NULL;
+    copyout((void *) & nullValue, (userptr_t) (stackptr + 4 + (4 * i)), (size_t) 4); //copy null into last position of argv
 
 
-	assert(curthread->t_vmspace != NULL);
+    md_usermode(nargs /*argc*/, (userptr_t) (stackptr + 4) /*userspace addr of argv*/, stackptr, entrypoint);
 
-	/* Load the executable. */
-	result = load_elf(v, &entrypoint);
-	if (result) {
-		/* thread_exit destroys curthread->t_vmspace */
-		vfs_close(v);
-		return result;
-	}
-
-	/* Done with the file now. */
-	vfs_close(v);
-
-	/* Define the user stack in the address space */
-	result = as_define_stack(curthread->t_vmspace, &stackptr);
-	if (result) {
-		/* thread_exit destroys curthread->t_vmspace */
-		return result;
-	}
-	
-	/* calculate the size of the stack frame for the main() function */
-	int stackFrameSize = 8; //minimum size for argc=0, argv[0]=NULL
-	int i;
-	for(i = 0;i < nargs;i++){
-		stackFrameSize += strlen(args[i]) + 1 + 4; //add the length of each argument, plus the space for the pointer
-	}
-
-	/* Decide the stackpointer address */
-	stackptr -= stackFrameSize;
-	for(;(stackptr % 8) > 0;stackptr--){} //decrement the stackptr until it is divisible by 8
-	
-	/* copy the arguments to the proper location on the stack */
-	int argumentStringLocation = (int)stackptr + 4 + ((nargs+1) * 4); //begining of where strings will be stored
-	copyout((void *)&nargs, (userptr_t) stackptr, (size_t) 4);	//copy argc
-	//copyout((void *)&argumentStringLocation, (userptr_t) (stackptr + 4), (size_t) 4); //copy address of first string into argv[0]
-	//copyoutstr(progname, (userptr_t) argumentStringLocation, (size_t) (strlen(progname) + 1), NULL); //copy programname for first argument
-	//argumentStringLocation += (strlen(progname) + 1);
-	
-	for(i=0;i<nargs;i++){
-		copyout((void *)&argumentStringLocation, (userptr_t) (stackptr + 4 + (4 * i)), (size_t) 4); //copy address of string into argv[i+1]
-		copyoutstr(args[i], (userptr_t) argumentStringLocation, (size_t) strlen(args[i]), NULL); //copy the argument string
-		argumentStringLocation += strlen(args[i]) + 1;  //update the location for the next iteration
-	}
-	int nullValue = NULL;
-	copyout((void *)&nullValue, (userptr_t) (stackptr + 4 + (4 * i)), (size_t) 4); //copy null into last position of argv
-	
-
-	md_usermode(nargs /*argc*/, (stackptr + 4) /*userspace addr of argv*/, stackptr, entrypoint);
-
-	/* md_usermode does not return */
-	panic("md_usermode returned\n");
-	return EINVAL;
+    /* md_usermode does not return */
+    panic("md_usermode returned\n");
+    return EINVAL;
 }
 #else
+
 int
-runprogram(char *progname, char **argv, unsigned long argc)
-{
+runprogram(char *progname, char **argv, unsigned long argc) {
     (void) argv;
     (void) argc;
-    
-	struct vnode *v;
-	vaddr_t entrypoint, stackptr;
-	int result;
 
-	/* Open the file. */
-	result = vfs_open(progname, O_RDONLY, &v);
-	if (result) {
-		return result;
-	}
+    struct vnode *v;
+    vaddr_t entrypoint, stackptr;
+    int result;
 
-	/* We should be a new thread. */
-	assert(curthread->t_vmspace == NULL);
+    /* Open the file. */
+    result = vfs_open(progname, O_RDONLY, &v);
+    if (result) {
+        return result;
+    }
 
-	/* Create a new address space. */
-	curthread->t_vmspace = as_create();
-	if (curthread->t_vmspace==NULL) {
-		vfs_close(v);
-		return ENOMEM;
-	}
+    /* We should be a new thread. */
+    assert(curthread->t_vmspace == NULL);
 
-	/* Activate it. */
-	as_activate(curthread->t_vmspace);
+    /* Create a new address space. */
+    curthread->t_vmspace = as_create();
+    if (curthread->t_vmspace == NULL) {
+        vfs_close(v);
+        return ENOMEM;
+    }
 
-	/* Load the executable. */
-	result = load_elf(v, &entrypoint);
-	if (result) {
-		/* thread_exit destroys curthread->t_vmspace */
-		vfs_close(v);
-		return result;
-	}
+    /* Activate it. */
+    as_activate(curthread->t_vmspace);
 
-	/* Done with the file now. */
-	vfs_close(v);
+    /* Load the executable. */
+    result = load_elf(v, &entrypoint);
+    if (result) {
+        /* thread_exit destroys curthread->t_vmspace */
+        vfs_close(v);
+        return result;
+    }
 
-	/* Define the user stack in the address space */
-	result = as_define_stack(curthread->t_vmspace, &stackptr);
-	if (result) {
-		/* thread_exit destroys curthread->t_vmspace */
-		return result;
-	}
+    /* Done with the file now. */
+    vfs_close(v);
 
-	/* Warp to user mode. */
-	md_usermode(0 /*argc*/, NULL /*userspace addr of argv*/,
-		    stackptr, entrypoint);
-	
-	/* md_usermode does not return */
-	panic("md_usermode returned\n");
-	return EINVAL;
+    /* Define the user stack in the address space */
+    result = as_define_stack(curthread->t_vmspace, &stackptr);
+    if (result) {
+        /* thread_exit destroys curthread->t_vmspace */
+        return result;
+    }
+
+    /* Warp to user mode. */
+    md_usermode(0 /*argc*/, NULL /*userspace addr of argv*/,
+            stackptr, entrypoint);
+
+    /* md_usermode does not return */
+    panic("md_usermode returned\n");
+    return EINVAL;
 }
 #endif /* OPT_A2 */
 

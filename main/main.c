@@ -70,7 +70,7 @@ boot(void)
 		hello();
 	#endif /* OPT_A0 */
 
-	kprintf("Bill's system version %s (%s #%d)\n", 
+	kprintf("Bill, Matt, and Steven's system version %s (%s #%d)\n", 
 		GROUP_VERSION, buildconfig, buildversion);
 	kprintf("\n");
 

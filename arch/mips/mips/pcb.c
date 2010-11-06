@@ -59,7 +59,7 @@ md_initpcb(struct pcb *pcb, char *stack,
 	   void (*func)(void *, unsigned long))
 {
     #if OPT_A2
-    DEBUG(DB_A2FC, "DEBUG: Thread `%s` entering md_initpcb.\n", curthread->t_name);
+    DEBUG(DB_A2FC, "DEBUG: Entering md_initpcb function.\n");
     #endif
 	/*
 	 * MIPS stacks grow down. What we get passed is just a hunk of
@@ -125,9 +125,6 @@ md_initpcb(struct pcb *pcb, char *stack,
 void
 md_switch(struct pcb *old, struct pcb *nu)
 {
-    #if OPT_A2
-    DEBUG(DB_A2FC, "DEBUG: Thread `%s` entering md_switch.\n", curthread->t_name);
-    #endif
 	if (old==nu) {
 		return;
 	}

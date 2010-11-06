@@ -50,9 +50,7 @@ static
 struct thread *
 thread_create(const char *name)
 {
-    #if OPT_A2
-    DEBUG(DB_A2FC, "DEBUG: Thread `%s` calling thread_create to create thread `%s`.\n", curthread->t_name, name);
-    #endif
+    DEBUG(DB_A2FC, "Creating thread named `%s`\n", name);
 	struct thread *thread = kmalloc(sizeof(struct thread));
 	if (thread==NULL) {
 		return NULL;
@@ -93,7 +91,7 @@ void
 thread_destroy(struct thread *thread)
 {
     #if OPT_A2
-    DEBUG(DB_A2FC, "DEBUG: Thread `%s` calling destroy on thread `%s`.\n", curthread->t_name, thread->t_name);
+    DEBUG(DB_A2FC, "DEBUG: Calling destroy on thread `%s`.\n", thread->t_name);
     #endif
 	assert(thread != curthread);
 
@@ -425,9 +423,6 @@ static
 void
 mi_switch(threadstate_t nextstate)
 {
-    #if OPT_A2
-    DEBUG(DB_A2FC, "DEBUG: Thread `%s` calling mi_switch.\n", curthread->t_name);
-    #endif
 	struct thread *cur, *next;
 	int result;
 	

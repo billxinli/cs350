@@ -68,7 +68,7 @@ void mips_syscall(struct trapframe *tf) {
         case SYS_execv:
             //1
             DEBUG(DB_A2FC, "DEBUG: Thread `%s` calling execv.\n", curthread->t_name);
-            //err = sys_reboot(tf->tf_a0);
+            err = sys_execv(tf->tf_a0, tf->tf_a1);
             break;
 
         case SYS_fork:

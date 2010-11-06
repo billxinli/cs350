@@ -58,10 +58,10 @@ Errors
 int sys_execv(char *progname, char ** args) {
     //first we need to calculate the size of args
     int nargs = 0;
-    char* argumentPointer = args;
+    char** argumentPointer = args;
     while(*argumentPointer != NULL){
         nargs++;
-        argumentPointer += sizeof(char*);
+        argumentPointer += sizeof(char**);
     }
     
     
@@ -116,10 +116,10 @@ int sys_execv(char *progname, char ** args) {
 		copyoutstr(args[i], (userptr_t) argumentStringLocation, (size_t) strlen(args[i]), NULL); //copy the argument string
 		argumentStringLocation += strlen(args[i]) + 1;  //update the location for the next iteration
 	}
-	int nullValue = NULL;
+	int* nullValue = NULL;
 	copyout((void *)&nullValue, (userptr_t) (stackptr + 4 + (4 * i)), (size_t) 4); //copy null into last position of argv
 	
-	md_usermode(nargs /*argc*/, (stackptr + 4) /*userspace addr of argv*/, stackptr, entrypoint);
+	md_usermode(nargs /*argc*/, (void *)(stackptr + 4) /*userspace addr of argv*/, stackptr, entrypoint);
 
 	/* md_usermode does not return */
 	panic("md_usermode returned\n");

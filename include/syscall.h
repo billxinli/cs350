@@ -21,6 +21,7 @@ int sys_close(int *retval, int fdn);
 pid_t sys_getpid();
 int sys_waitpid(pid_t PID, int *status, int options);
 pid_t sys_fork(struct trapframe *tf);
+int sys_execv(char *progname, char ** args);
 #endif
 
 

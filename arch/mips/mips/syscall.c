@@ -75,6 +75,7 @@ void mips_syscall(struct trapframe *tf) {
             //2
             DEBUG(DB_A2FC, "DEBUG: Thread `%s` calling fork.\n", curthread->t_name);
             err = sys_fork(tf);
+            DEBUG(DB_A2FC, "DEBUG: Fork code completed.\n");
             //the below is necessary since fork actually returns a value
             if (err >= MIN_PID) {
                 retval = err;
@@ -165,9 +166,6 @@ void mips_syscall(struct trapframe *tf) {
 void md_forkentry(struct trapframe *tf) {
     #if OPT_A2
     DEBUG(DB_A2FC, "DEBUG: Thread `%s` entering md_forkentry.\n", curthread->t_name);
-    ///DEBUG
-    kprintf("* GOT TO md_forkentry *");
-    ///
     assert(curspl == 0);
     struct trapframe my_trap = *tf;
     my_trap.tf_v0 = 0; //set return value to 0

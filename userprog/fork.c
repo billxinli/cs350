@@ -39,16 +39,7 @@ pid_t sys_fork(struct trapframe *tf) {
         splx(spl);
         //ERROR
         return result;
-    }
-    /*
-    t_stack is technically supposed to be private, but since this is the only time we'll
-    be using t_stack outside of thread functions, I've decided to just access the
-    variable directly instead of making a new function that will only ever be used here
-    */
-    int i;
-    for (i = 0; i < STACK_SIZE; i++) {
-        child->t_stack[i] = curthread->t_stack[i];
-    }
+    }  
     
     child->parent = curthread;
     //add new process to list of children
@@ -70,8 +61,10 @@ pid_t sys_fork(struct trapframe *tf) {
     
     int retval = child->pid;
     
+    DEBUG(DB_A2FC, "fork() lowing interrupts to %d.\n", spl);
     splx(spl);
     
+    DEBUG(DB_A2FC, "Got to return statement in fork()\n");
     return retval; //the parent thread returns this.
 }
 

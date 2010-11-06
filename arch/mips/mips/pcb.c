@@ -125,6 +125,7 @@ md_initpcb(struct pcb *pcb, char *stack,
 void
 md_switch(struct pcb *old, struct pcb *nu)
 {
+    
 	if (old==nu) {
 		return;
 	}

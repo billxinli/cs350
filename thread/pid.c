@@ -11,6 +11,8 @@ freeing these IDs for re-use when the thread exits. These operations are atomic.
 #include <types.h>
 #include <pid.h>
 #include <machine/spl.h>
+#include <thread.h>
+#include <curthread.h>
 
 #define PID_FREE   0 //the process can be recycled
 #define PID_PARENT 1 //the process has not exited, but the parent has exited

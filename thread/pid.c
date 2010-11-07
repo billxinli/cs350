@@ -11,8 +11,6 @@ freeing these IDs for re-use when the thread exits. These operations are atomic.
 #include <types.h>
 #include <pid.h>
 #include <machine/spl.h>
-#include <thread.h>
-#include <curthread.h>
 
 #define PID_FREE   0 //the process can be recycled
 #define PID_PARENT 1 //the process has not exited, but the parent has exited
@@ -48,7 +46,7 @@ pid_t new_pid() {
         unavailable_pids = new_entry;
         unused_pids += 1;
         splx(spl);
-        DEBUG(DB_PID, "Thread `%s` assigned PID #%d\n", curthread->t_name, unused_pids-1);
+        DEBUG(DB_PID, "A thread has been assigned PID #%d\n", unused_pids-1);
         return (unused_pids - 1);
     } else {
         struct pid_list *first = recycled_pids;
@@ -60,7 +58,7 @@ pid_t new_pid() {
         unavailable_pids = new_entry;
         kfree(first);
         splx(spl);
-        DEBUG(DB_PID, "Thread `%s` assigned PID #%d\n", curthread->t_name, (int) new_entry->pid);
+        DEBUG(DB_PID, "A thread has been assigned PID #%d\n", (int) new_entry->pid);
         return (new_entry->pid);
     }
 }

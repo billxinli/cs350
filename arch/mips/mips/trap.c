@@ -40,12 +40,13 @@ void
 kill_curthread(u_int32_t epc, unsigned code, u_int32_t vaddr)
 {
 	assert(code<NTRAPCODES);
+	DEBUG(0x2000, "Thread `%s` called kill_curthread.\n", curthread->t_name);
 	kprintf("Fatal user mode trap %u (%s, epc 0x%x, vaddr 0x%x)\n",
 		code, trapcodenames[code], epc, vaddr);
 	
 	#if OPT_A2
 	//instead of panic, exit the thread
-	DEBUG((DB_THREADS | DB_A2FC) , "Thread `%s` calling kill_curthread", curthread->t_name);
+	DEBUG((DB_THREADS | DB_A2FC) , "Thread `%s` calling kill_curthread\n", curthread->t_name);
 	thread_exit();
 	#else
 	/*

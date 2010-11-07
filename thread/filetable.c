@@ -264,7 +264,10 @@ int ft_remove(struct filetable* ft, int fti) {
  * anything in here, except the stds, if they are attached to the thread.
  */
 int ft_destroy(struct filetable* ft) {
-    (void) ft;
+    int i;
+    for (i = ft_size(ft) - 1; i >= 0; i--) {
+        ft_remove(ft, i);
+    }
     return 1;
 }
 

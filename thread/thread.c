@@ -137,6 +137,9 @@ thread_destroy(struct thread *thread) {
     } else {
         pid_process_exit(thread->pid);
     }
+    
+    ft_destroy(thread->ft);
+    kfree(thread->ft);
 
     DEBUG(0x2000, "thread_destroy Stage 4\n");
 

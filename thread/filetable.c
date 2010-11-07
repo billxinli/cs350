@@ -7,6 +7,7 @@
 #include <kern/errno.h>
 #include <kern/unistd.h>
 #include <kern/limits.h>
+#include <machine/spl.h>
 #include <lib.h>
 #include <array.h>
 #include <queue.h>

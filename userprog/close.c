@@ -35,6 +35,7 @@ error codes may be returned for other errors not mentioned here.
 #if OPT_A2
 #include <types.h>
 #include <kern/errno.h>
+#include <kern/limits.h>
 #include <kern/unistd.h>
 #include <lib.h>
 #include <filetable.h>

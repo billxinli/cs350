@@ -67,16 +67,16 @@ thread_create(const char *name) {
 
     thread->t_cwd = NULL;
 
+    // If you add things to the thread structure, be sure to initialize
+    // them here.
 #if OPT_A2
     thread->pid = new_pid();
     thread->parent = NULL;
     thread->children = NULL;
     thread->exit_status = -1; //will be changed if _exit() is called
+    thread->ft = ft_create();
 #endif
 
-    // If you add things to the thread structure, be sure to initialize
-    // them here.
-    thread->ft = ft_create();
     return thread;
 }
 
@@ -676,3 +676,4 @@ mi_threadstart(void *data1, unsigned long data2,
     /* Done. */
     thread_exit();
 }
+

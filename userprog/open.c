@@ -1,6 +1,5 @@
 /*
 Name
-
 open - open a file
 
 Library
@@ -72,6 +71,7 @@ The following error codes should be returned under the conditions given. Other e
 #include <types.h>
 #include <kern/errno.h>
 #include <kern/unistd.h>
+#include <kern/stat.h>
 #include <lib.h>
 #include <filetable.h>
 #include <../arch/mips/include/spl.h>
@@ -82,18 +82,36 @@ The following error codes should be returned under the conditions given. Other e
 #include <vnode.h>
 
 int sys_open(int *retval, char *filename, int flags, int mode) {
+
+    if (flags >= 63 || strlen(filename) == 0) {
+        return EINVAL;
+    }
+
     (void) mode;
-    int result;
     struct filedescriptor* fd = kmalloc(sizeof (struct filedescriptor));
     fd->fdvnode = kmalloc(sizeof (struct vnode));
     char *kfilename = kstrdup(filename);
-    result = vfs_open(kfilename, flags, &fd->fdvnode);
+    int copyflag = flags;
+    flags = flags&O_ACCMODE;
+    int offset = 0;
+    int result = vfs_open(kfilename, copyflag, &fd->fdvnode);
     if (result) {
-        vfs_close(fd->fdvnode);
-        return 0;
+        return result;
     }
+
+    if (copyflag & O_APPEND) {
+        struct stat *statbuf = kmalloc(sizeof ( struct stat));
+        VOP_STAT(fd->fdvnode, statbuf);
+        offset = statbuf->st_size;
+        kfree(statbuf);
+    }
+
+    if (copyflag & O_TRUNC) {
+        VOP_TRUNCATE(fd->fdvnode, 0);
+    }
+
     kfree(kfilename);
-    fd->offset = 0;
+    fd->offset = offset;
     fd->mode = flags;
     result = ft_add(curthread->ft, fd);
     *retval = result;

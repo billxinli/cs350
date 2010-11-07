@@ -9,8 +9,8 @@
 #include <machine/spl.h>
 
 /* Flags word for DEBUG() macro. */
-u_int32_t dbflags = 0x3000;
-
+//u_int32_t dbflags = 0x3000;
+u_int32_t dbflags = 0;
 /* Lock for non-polled kprintfs */
 static struct lock *kprintf_lock;
 

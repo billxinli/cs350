@@ -11,10 +11,12 @@ while true; do
                         echo "e - To execute the last compiled OS."
                         echo "q - To quit."
                 ;;
+
 		s)
 			cd ~/cs350-os161/os161-1.11/kern/
 			svn update
 		;;
+
 		c)
 			echo -ne "Which assignment? "
 			read asst
@@ -23,7 +25,7 @@ while true; do
 				cd ~/cs350-os161/os161-1.11/kern/conf
 				./config ASST${asst}
 				cd ../compile/ASST${asst}
-				
+				make clean
 				make depend
 				make 
 				make install
@@ -40,15 +42,28 @@ while true; do
 			echo =================================================
 
 		;;
-                a)
-				cd ~/cs350-os161/os161-1.11/kern/conf
-				./config ASST2
-				cd ../compile/ASST2
-				make depend
-				make
-				make install
+                t)
+			cd ~/cs350-os161/os161-1.11/kern/conf
+			./config ASST2
+			cd ../compile/ASST2
+			make clean > /dev/null
+			if [ $? -gt 0 ]; then
+				echo "ERROR!"
+			fi
+			make depend > /dev/null
+			if [ $? -gt 0 ]; then
+				echo "ERROR!"
+			fi
+			make > /dev/null
+			if [ $? -gt 0 ]; then
+				echo "ERROR!"
+			fi
+			make install > /dev/null
+			if [ $? -gt 0 ]; then
+				echo "ERROR!"
+			fi
 			cd ~/cs350-os161/root
-			sys161 kernel "p testbin/add 5 6; q"
+			sys161 kernel "p testbin/badcall; q"
                 ;;
 
 		q)

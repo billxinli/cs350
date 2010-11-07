@@ -52,10 +52,11 @@ error codes may be returned for other errors not mentioned here.
 #include <uio.h>
 #include <vfs.h>
 #include <vnode.h>
+#include <vm.h>
 
 int sys_read(int *retval, int fdn, void *buf, size_t nbytes) {
     //Check for Bad memory reference.
-    if (!buf) {
+    if (!buf || (u_int32_t) buf >= MIPS_KSEG0) {
         return EFAULT;
     }
     //Get the file descriptor from the opened list of file descriptors that the current thread has, based on the fdn given.

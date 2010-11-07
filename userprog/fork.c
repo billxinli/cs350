@@ -51,11 +51,22 @@ pid_t sys_fork(struct trapframe *tf) {
     
     //we don't need to copy t_sleepaddr because the thread can't be sleeping if it's calling fork()
     //we also don't need to copy t_cwd since it's already been coppied when thread_fork() was called
-    as_copy(curthread->t_vmspace, &child->t_vmspace); //copy the data to the child process's new address space
+    int err = as_copy(curthread->t_vmspace, &child->t_vmspace); //copy the data to the child process's new address space
+    if (err != 0) {
+        /**
+        TODO: Need to safely remove the new thread, as if it had called thread_exit()
+        **/
+        return err;
+    }
     //now copy the file table
     int j;
     for (j = 0; j < ft_size(curthread->ft); j++) {
-        ft_add(child->ft, ft_get(curthread->ft, j));
+        if (ft_add(child->ft, ft_get(curthread->ft, j)) == -1) {
+            /**
+            TODO: Need to safely remove the new thread, as if it had called thread_exit()
+            **/
+            return ENOMEM;
+        }
     }
     
     

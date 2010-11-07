@@ -104,6 +104,7 @@ void pid_change_status(pid_t x, int and_mask) {
                     DEBUG(0x2000, "DEBUG: done freeing pid\n");
                 }
             }
+            p = p->next;
         }
         assert(found);
     }

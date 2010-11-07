@@ -231,7 +231,9 @@ int ft_add(struct filetable* ft, struct filedescriptor* fd) {
         //Add a new one.
         fdn = ft_array_size(ft);
         fd->fdn = fdn;
-        array_add(ft->filedescriptor, fd);
+        if (array_add(ft->filedescriptor, fd) != 0) { //if error (ENOMEM)
+            return -1;
+        }
     }
     assert(fdn != 0);
     return fdn;

@@ -57,6 +57,7 @@ pid_t sys_fork(struct trapframe *tf) {
         TODO: Need to safely remove the new thread, as if it had called thread_exit()
         **/
         /**delete this line after**/ panic("Out of Memory!\n");
+        //child->parent = NULL; //to prevent thread_destroy from freeing a non-existant pid
         //thread_destroy(child);
         return err;
     }
@@ -68,6 +69,7 @@ pid_t sys_fork(struct trapframe *tf) {
             TODO: Need to safely remove the new thread, as if it had called thread_exit()
             **/
             /**delete this line after**/ panic("Out of Memory!\n");
+            //child->parent = NULL; //to prevent thread_destroy from freeing a non-existant pid
             //thread_destroy(child);
             return ENOMEM;
         }

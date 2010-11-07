@@ -44,7 +44,8 @@ int sys_waitpid(pid_t PID, int *status, int options) {
         curthread->children = curthread->children->next;
         kfree(temp);
     } else {
-        for (p = curthread->children; p != NULL; p = p->next) {
+        for (p = curthread->children;; p = p->next) {
+            assert(p->next != NULL);
             if (p->next->pid == PID) {
                 struct child_table *temp = p->next;
                 p->next = p->next->next;

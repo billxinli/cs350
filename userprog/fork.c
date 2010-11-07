@@ -78,10 +78,8 @@ pid_t sys_fork(struct trapframe *tf) {
     
     int retval = child->pid;
     
-    DEBUG(DB_A2FC, "fork() lowing interrupts to %d.\n", spl);
     splx(spl);
     
-    DEBUG(DB_A2FC, "Got to return statement in fork()\n");
     return retval; //the parent thread returns this.
 }
 

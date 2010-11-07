@@ -29,6 +29,7 @@ void sys__exit(int exitcode){
     since we need to be able to free these resources on processes that exit
     abnormally (crash without calling _exit())
     */
+    DEBUG(DB_THREADS, "Thread `%s` calling _exit()\n", curthread->t_name);
 	curthread->exit_status = exitcode;
 	thread_exit();
 }

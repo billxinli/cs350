@@ -46,6 +46,7 @@ pid_t new_pid() {
         unavailable_pids = new_entry;
         unused_pids += 1;
         splx(spl);
+        DEBUG(DB_PID, "Thread `%s` assigned PID #%d\n", curthread->t_name, unused_pids-1);
         return (unused_pids - 1);
     } else {
         struct pid_list *first = recycled_pids;
@@ -57,6 +58,7 @@ pid_t new_pid() {
         unavailable_pids = new_entry;
         kfree(first);
         splx(spl);
+        DEBUG(DB_PID, "Thread `%s` assigned PID #%d\n", curthread->t_name, (int) new_entry->pid);
         return (new_entry->pid);
     }
 }
@@ -64,13 +66,12 @@ pid_t new_pid() {
 //"private" function
 void pid_change_status(pid_t x, int and_mask) {
     int spl = splhigh();
+    DEBUG(DB_PID, "PID #%d: change status %d\n", (int) x, and_mask);
     assert(unavailable_pids != NULL);
-    DEBUG(0x2000, "DEBUG: pid_change_status (%d)\n", and_mask);
     if (unavailable_pids->pid == x) {
-        DEBUG(0x2000, "DEBUG: Pid: %d; Status: %d\n", unavailable_pids->pid, unavailable_pids->status);
         unavailable_pids->status &= and_mask;
+        DEBUG(DB_PID, "PID #%d: new status is %d\n", (int) x, unavailable_pids->status);
         if (unavailable_pids->status == PID_FREE) {
-            DEBUG(0x2000, "DEBUG: freeing pid A\n");
             //add pid to recycled_pids list
             struct pid_list *new_entry = kmalloc(sizeof(struct pid_list));
             new_entry->pid = x;
@@ -80,7 +81,7 @@ void pid_change_status(pid_t x, int and_mask) {
             struct pid_clist *temp = unavailable_pids;
             unavailable_pids = unavailable_pids->next;
             kfree(temp);
-            DEBUG(0x2000, "DEBUG: done freeing pid\n");
+            DEBUG(DB_PID, "PID #%d: free for re-use\n", (int) x);
         }
     } else {
         int found = 0;
@@ -88,10 +89,9 @@ void pid_change_status(pid_t x, int and_mask) {
         while (p->next != NULL) {
             if (p->next->pid == x) {
                 found = 1;
-                DEBUG(0x2000, "DEBUG: Pid: %d; Status: %d\n", unavailable_pids->pid, unavailable_pids->status);
                 p->next->status &= and_mask;
+                DEBUG(DB_PID, "PID #%d: new status is %d\n", (int) x, p->next->status);
                 if (p->next->status == PID_FREE) {
-                    DEBUG(0x2000, "DEBUG: freeing pid B\n");
                     //add pid to recycled_pids list
                     struct pid_list *new_entry = kmalloc(sizeof(struct pid_list));
                     new_entry->pid = x;
@@ -101,7 +101,7 @@ void pid_change_status(pid_t x, int and_mask) {
                     struct pid_clist *temp = p->next;
                     p->next = p->next->next;
                     kfree(temp);
-                    DEBUG(0x2000, "DEBUG: done freeing pid\n");
+                    DEBUG(DB_PID, "PID #%d: free for re-use\n", (int) x);
                 }
             }
             p = p->next;

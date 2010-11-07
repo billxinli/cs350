@@ -27,11 +27,13 @@ int sys_waitpid(pid_t PID, int *status, int options) {
         }
     }
     if (child == NULL) { //error: pid not in use or is not the pid of a child process
+        DEBUG(DB_PID, "Thread `%s` trying to wait on invalid PID %d\n", curthread->t_name, (int) PID);
         splx(spl);
         //error
         return ESRCH;
     }
     
+    DEBUG(DB_PID, "Thread `%s`: wait_pid(%d)\n", curthread->t_name, (int) PID);
     while (child->finished == 0) {
         thread_sleep((void *) PID);
     }

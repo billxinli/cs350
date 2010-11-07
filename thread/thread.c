@@ -50,7 +50,7 @@ static
 struct thread *
 thread_create(const char *name)
 {
-    DEBUG(DB_A2FC, "Creating thread named `%s`\n", name);
+    DEBUG(DB_THREADS, "Creating thread named `%s`\n", name);
 	struct thread *thread = kmalloc(sizeof(struct thread));
 	if (thread==NULL) {
 		return NULL;
@@ -91,7 +91,7 @@ void
 thread_destroy(struct thread *thread)
 {
     #if OPT_A2
-    DEBUG(DB_A2FC, "DEBUG: Calling destroy on thread `%s`.\n", thread->t_name);
+    DEBUG(DB_THREADS, "DEBUG: Calling destroy on thread `%s`.\n", thread->t_name);
     #endif
 	assert(thread != curthread);
 
@@ -133,8 +133,6 @@ thread_destroy(struct thread *thread)
 	
 	ft_destroy(thread->ft);
 	kfree(thread->ft);
-	
-	DEBUG(0x2000, "thread_destroy Stage 4\n");
 	
 	thread_wakeup((void *) thread->pid);
 	
@@ -323,7 +321,7 @@ thread_fork(const char *name,
 	    struct thread **ret)
 {
     #if OPT_A2
-    DEBUG(DB_A2FC, "DEBUG: Thread `%s` calling thread_fork.\n", curthread->t_name);
+    DEBUG(DB_THREADS, "DEBUG: Thread `%s` calling thread_fork.\n", curthread->t_name);
     #endif
 	struct thread *newguy;
 	int s, result;
@@ -520,7 +518,7 @@ void
 thread_exit(void)
 {
     #if OPT_A2
-    DEBUG(DB_A2FC, "DEBUG: Thread `%s` calling thread_exit.\n", curthread->t_name);
+    DEBUG(DB_THREADS, "DEBUG: Thread `%s` calling thread_exit.\n", curthread->t_name);
     #endif
 	if (curthread->t_stack != NULL) {
 		/*
@@ -662,7 +660,7 @@ mi_threadstart(void *data1, unsigned long data2,
 	       void (*func)(void *, unsigned long))
 {
     #if OPT_A2
-    DEBUG(DB_A2FC, "DEBUG: Thread `%s` calling mi_threadstart.\n", curthread->t_name);
+    DEBUG(DB_THREADS, "DEBUG: Thread `%s` calling mi_threadstart.\n", curthread->t_name);
     #endif
 	/* If we have an address space, activate it */
 	if (curthread->t_vmspace) {

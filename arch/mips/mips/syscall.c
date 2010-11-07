@@ -78,16 +78,21 @@ void mips_syscall(struct trapframe *tf) {
             err = sys_fork(tf);
             DEBUG(DB_A2FC, "DEBUG: Fork code completed.\n");
             //the below is necessary since fork actually returns a value
-            if (err >= MIN_PID) {
+            if (err >= MIN_PID) { //then it's a return value, not an error code
                 retval = err;
                 err = 0;
-            };
+            }
             break;
 
         case SYS_waitpid:
             //3
             DEBUG(DB_A2FC, "DEBUG: Thread `%s` calling waitpid.\n", curthread->t_name);
             err = sys_waitpid((pid_t) tf->tf_a0, &retval, tf->tf_a1);
+            //the below is neccesary since waitpid actually returns a value
+            if (err >= MIN_PID) { //then it's a return value, not an error code
+                retval = err;
+                err = 0;
+            }
             break;
 
         case SYS_open:
@@ -130,7 +135,9 @@ void mips_syscall(struct trapframe *tf) {
             //11
             ///DEBUG(DB_A2FC, "DEBUG: Thread `%s` calling getpid.\n", curthread->t_name);
             //commented out about debug to avoid huge number of messages as above
-            err = sys_getpid();
+            //sys_getpid() returns a value, never an error code
+            retval = sys_getpid();
+            err = 0;
             break;
 
 #endif /* OPT_A2 */

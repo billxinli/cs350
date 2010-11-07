@@ -56,6 +56,8 @@ pid_t sys_fork(struct trapframe *tf) {
         /**
         TODO: Need to safely remove the new thread, as if it had called thread_exit()
         **/
+        /**delete this line after**/ panic("Out of Memory!\n");
+        //thread_destroy(child);
         return err;
     }
     //now copy the file table
@@ -65,6 +67,8 @@ pid_t sys_fork(struct trapframe *tf) {
             /**
             TODO: Need to safely remove the new thread, as if it had called thread_exit()
             **/
+            /**delete this line after**/ panic("Out of Memory!\n");
+            //thread_destroy(child);
             return ENOMEM;
         }
     }

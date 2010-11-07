@@ -29,8 +29,8 @@ struct filedescriptor {
 	int fdn;
 	//The mode of the file descriptor in question
 	int mode;
-	//List of owners of the file descriptor
-	struct array *owner;
+	//Number of owners of the file descriptor
+	int numOwners;
 	//The offset
 	int offset;
 	//The vnode

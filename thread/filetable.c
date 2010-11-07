@@ -90,6 +90,7 @@ int ft_attachstds(struct filetable *ft) {
     fd_stdin->mode = mode;
     fd_stdin->offset = 0;
     fd_stdin->fdvnode = vn_stdin;
+    fd_stdin->numOwners = 1;
     ft_set(ft, fd_stdin, STDIN_FILENO);
 
     //STDOUT
@@ -112,6 +113,7 @@ int ft_attachstds(struct filetable *ft) {
     fd_stdout->mode = mode;
     fd_stdout->offset = 0;
     fd_stdout->fdvnode = vn_stdout;
+    fd_stdout->numOwners = 1;
     ft_set(ft, fd_stdout, STDOUT_FILENO);
 
     //STDERR
@@ -134,6 +136,7 @@ int ft_attachstds(struct filetable *ft) {
     fd_stderr->mode = mode;
     fd_stderr->offset = 0;
     fd_stderr->fdvnode = vn_stderr;
+    fd_stderr->numOwners = 1;
     ft_set(ft, fd_stderr, STDERR_FILENO);
     return 1;
 }
@@ -185,7 +188,7 @@ struct filedescriptor *ft_get(struct filetable *ft, int fti) {
         }
     }
     //Doesn't exist.
-    if (fti > ft_array_size(ft)) {
+    if (fti >= ft_array_size(ft)) { //changed > to >= since there shouldn't be an element ARRAY_SIZE --Matt
         return NULL;
     }
     struct filedescriptor *ret = array_getguy(ft->filedescriptor, fti);
@@ -235,6 +238,9 @@ int ft_add(struct filetable* ft, struct filedescriptor* fd) {
             return -1;
         }
     }
+    
+    fd->numOwners++;
+    
     assert(fdn != 0);
     return fdn;
 }
@@ -248,13 +254,21 @@ int ft_remove(struct filetable* ft, int fti) {
 
     struct filedescriptor * fd = ft_get(ft, fti);
 
-    q_addtail(ft->nextfiledescriptor, (void *) fd->fdn);
-    vfs_close(fd->fdvnode);
-
-    if (fti == ft_array_size(ft)) {
-        array_remove(ft->filedescriptor, fti);
-    } else {
-        array_setguy(ft->filedescriptor, fti, NULL);
+    if (fd != NULL) {
+        q_addtail(ft->nextfiledescriptor, (void *) fd->fdn);
+        int spl = splhigh();
+        vfs_close(fd->fdvnode);
+    
+        fd->numOwners--;
+        if (fd->numOwners == 0) {
+            kfree(fd);
+        }
+        splx(spl);
+        if (fti == ft_array_size(ft)) {
+            array_remove(ft->filedescriptor, fti);
+        } else {
+            array_setguy(ft->filedescriptor, fti, NULL);
+        }
     }
     return 1;
 }
@@ -267,7 +281,7 @@ int ft_remove(struct filetable* ft, int fti) {
  */
 int ft_destroy(struct filetable* ft) {
     int i;
-    for (i = ft_size(ft) - 1; i >= 0; i--) {
+    for (i = ft_array_size(ft) - 1; i >= 0; i--) {
         ft_remove(ft, i);
     }
     return 1;

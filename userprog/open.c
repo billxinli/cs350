@@ -113,6 +113,7 @@ int sys_open(int *retval, char *filename, int flags, int mode) {
     kfree(kfilename);
     fd->offset = offset;
     fd->mode = flags;
+    fd->numOwners = 0; //will increment to 1 upon ft_add
     result = ft_add(curthread->ft, fd);
     *retval = result;
     return 0;

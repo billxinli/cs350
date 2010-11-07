@@ -14,6 +14,7 @@
 int sys_waitpid(pid_t PID, int *status, int options) {
     int spl = splhigh();
     if (options != 0) {
+        DEBUG(DB_PID, "Invalid option passed to waitpid\n");
         splx(spl);
         //error
         return EINVAL;

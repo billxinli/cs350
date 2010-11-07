@@ -53,24 +53,17 @@ pid_t sys_fork(struct trapframe *tf) {
     //we also don't need to copy t_cwd since it's already been coppied when thread_fork() was called
     int err = as_copy(curthread->t_vmspace, &child->t_vmspace); //copy the data to the child process's new address space
     if (err != 0) {
-        /**
-        TODO: Need to safely remove the new thread, as if it had called thread_exit()
-        **/
-        /**delete this line after**/ panic("Out of Memory!\n");
-        //child->parent = NULL; //to prevent thread_destroy from freeing a non-existant pid
-        //thread_destroy(child);
+        child->t_vmspace = NULL;
+        child->parent = NULL; //to prevent thread_destroy from freeing a non-existant pid
+        md_initpcb(&child->t_pcb, child->t_stack, 0, 0, thread_exit); //set new thread to delete itself
         return err;
     }
     //now copy the file table
     int j;
     for (j = 0; j < ft_size(curthread->ft); j++) {
         if (ft_add(child->ft, ft_get(curthread->ft, j)) == -1) {
-            /**
-            TODO: Need to safely remove the new thread, as if it had called thread_exit()
-            **/
-            /**delete this line after**/ panic("Out of Memory!\n");
-            //child->parent = NULL; //to prevent thread_destroy from freeing a non-existant pid
-            //thread_destroy(child);
+            child->parent = NULL; //to prevent thread_destroy from freeing a non-existant pid
+            md_initpcb(&child->t_pcb, child->t_stack, 0, 0, thread_exit); //set new thread to delete itself
             return ENOMEM;
         }
     }

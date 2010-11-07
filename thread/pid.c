@@ -65,8 +65,7 @@ pid_t new_pid() {
 void pid_change_status(pid_t x, int and_mask) {
     int spl = splhigh();
     assert(unavailable_pids != NULL);
-    DEBUG(0x2000, "DEBUG: unavailable_pids address: %p\n", unavailable_pids);
-    DEBUG(0x2000, "DEBUG: pid_change_status (%d)\n");
+    DEBUG(0x2000, "DEBUG: pid_change_status (%d)\n", and_mask);
     if (unavailable_pids->pid == x) {
         DEBUG(0x2000, "DEBUG: Pid: %d; Status: %d\n", unavailable_pids->pid, unavailable_pids->status);
         unavailable_pids->status &= and_mask;

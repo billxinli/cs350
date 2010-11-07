@@ -21,13 +21,12 @@
 #include <pid.h>
 #include <child_table.h>
 #endif
-
 /* States a thread can be in. */
 typedef enum {
-    S_RUN,
-    S_READY,
-    S_SLEEP,
-    S_ZOMB,
+	S_RUN,
+	S_READY,
+	S_SLEEP,
+	S_ZOMB,
 } threadstate_t;
 
 /* Global variable for the thread currently executing at any given time. */
@@ -49,35 +48,36 @@ static int numthreads;
 
 static
 struct thread *
-thread_create(const char *name) {
+thread_create(const char *name)
+{
     DEBUG(DB_A2FC, "Creating thread named `%s`\n", name);
-    struct thread *thread = kmalloc(sizeof (struct thread));
-    if (thread == NULL) {
-        return NULL;
-    }
-    thread->t_name = kstrdup(name);
-    if (thread->t_name == NULL) {
-        kfree(thread);
-        return NULL;
-    }
-    thread->t_sleepaddr = NULL;
-    thread->t_stack = NULL;
+	struct thread *thread = kmalloc(sizeof(struct thread));
+	if (thread==NULL) {
+		return NULL;
+	}
+	thread->t_name = kstrdup(name);
+	if (thread->t_name==NULL) {
+		kfree(thread);
+		return NULL;
+	}
+	thread->t_sleepaddr = NULL;
+	thread->t_stack = NULL;
+	
+	thread->t_vmspace = NULL;
 
-    thread->t_vmspace = NULL;
-
-    thread->t_cwd = NULL;
-
-    // If you add things to the thread structure, be sure to initialize
-    // them here.
-#if OPT_A2
-    thread->pid = new_pid();
-    thread->parent = NULL;
-    thread->children = NULL;
-    thread->exit_status = -1; //will be changed if _exit() is called
-    thread->ft = ft_create();
-#endif
-
-    return thread;
+	thread->t_cwd = NULL;
+	
+	#if OPT_A2
+	  thread->pid = new_pid();
+	  thread->parent = NULL;
+	  thread->children = NULL;
+	  thread->exit_status = -1; //will be changed if _exit() is called
+	#endif
+	
+	// If you add things to the thread structure, be sure to initialize
+	// them here.
+        thread->ft = ft_create();
+	return thread;
 }
 
 /*
@@ -88,68 +88,66 @@ thread_create(const char *name) {
  */
 static
 void
-thread_destroy(struct thread *thread) {
-#if OPT_A2
+thread_destroy(struct thread *thread)
+{
+    #if OPT_A2
     DEBUG(DB_A2FC, "DEBUG: Calling destroy on thread `%s`.\n", thread->t_name);
-#endif
-    assert(thread != curthread);
+    #endif
+	assert(thread != curthread);
 
-    // If you add things to the thread structure, be sure to dispose of
-    // them here or in thread_exit.
+	// If you add things to the thread structure, be sure to dispose of
+	// them here or in thread_exit.
 
-    // These things are cleaned up in thread_exit.
-    assert(thread->t_vmspace == NULL);
-    assert(thread->t_cwd == NULL);
+	// These things are cleaned up in thread_exit.
+	assert(thread->t_vmspace==NULL);
+	assert(thread->t_cwd==NULL);
+	
+	if (thread->t_stack) {
+		kfree(thread->t_stack);
+	}
+	
+	#if OPT_A2
+	DEBUG(0x2000, "thread_destroy Stage 1\n");
+	kfree(thread->children);
+	struct child_table *p;
+	for (p = thread->children; p != NULL;) {
+	    struct child_table *temp = p;
+	    pid_parent_done(p->pid);
+	    p = p->next;
+	    kfree(temp);
+	}
+	DEBUG(0x2000, "thread_destroy Stage 2\n");
+	int pid_update_success = 0;
+	for (p = thread->parent->children; p != NULL;) {
+	    if (p->pid == thread->pid) {
+	        pid_update_success = 1;
+	        p->finished = 1;
+	        p->exit_code = thread->exit_status;
+	        p = NULL; //won't let me use break in a for loop, so I'll do this instead
+	    }
+	}
+	DEBUG(0x2000, "thread_destroy Stage 3\n");
+	assert(pid_update_success);
+	
+	if (thread->parent == NULL) {
+	    pid_free(thread->pid);
+	} else {
+	    pid_process_exit(thread->pid);
+	}
+	
+	ft_destroy(thread->ft);
+	kfree(thread->ft);
+	
+	DEBUG(0x2000, "thread_destroy Stage 4\n");
+	
+	thread_wakeup((void *) thread->pid);
+	
+	#endif
 
-    if (thread->t_stack) {
-        kfree(thread->t_stack);
-    }
-
-#if OPT_A2
-    DEBUG(0x2000, "thread_destroy Stage 1\n");
-    kfree(thread->children);
-    struct child_table *p;
-    for (p = thread->children; p != NULL;) {
-        struct child_table *temp = p;
-        pid_parent_done(p->pid);
-        p = p->next;
-        kfree(temp);
-    }
-    DEBUG(0x2000, "thread_destroy Stage 2\n");
-    int pid_update_success = 0;
-    if (thread->parent != NULL) {
-        for (p = thread->parent->children; p != NULL;) {
-            if (p->pid == thread->pid) {
-                pid_update_success = 1;
-                p->finished = 1;
-                p->exit_code = thread->exit_status;
-                p = NULL; //won't let me use break in a for loop, so I'll do this instead
-            }
-        }
-    } else {
-        pid_update_success = 1;
-    }
-    DEBUG(0x2000, "thread_destroy Stage 3\n");
-    assert(pid_update_success);
-
-    if (thread->parent == NULL) {
-        pid_free(thread->pid);
-    } else {
-        pid_process_exit(thread->pid);
-    }
-    
-    ft_destroy(thread->ft);
-    kfree(thread->ft);
-
-    DEBUG(0x2000, "thread_destroy Stage 4\n");
-
-    thread_wakeup((void *) thread->pid);
-
-#endif
-
-    kfree(thread->t_name);
-    kfree(thread);
+	kfree(thread->t_name);
+	kfree(thread);
 }
+
 
 /*
  * Remove zombies. (Zombies are threads/processes that have exited but not
@@ -157,19 +155,20 @@ thread_destroy(struct thread *thread) {
  */
 static
 void
-exorcise(void) {
-    int i, result;
+exorcise(void)
+{
+	int i, result;
 
-    assert(curspl > 0);
-
-    for (i = 0; i < array_getnum(zombies); i++) {
-        struct thread *z = array_getguy(zombies, i);
-        assert(z != curthread);
-        thread_destroy(z);
-    }
-    result = array_setsize(zombies, 0);
-    /* Shrinking the array; not supposed to be able to fail. */
-    assert(result == 0);
+	assert(curspl>0);
+	
+	for (i=0; i<array_getnum(zombies); i++) {
+		struct thread *z = array_getguy(zombies, i);
+		assert(z!=curthread);
+		thread_destroy(z);
+	}
+	result = array_setsize(zombies, 0);
+	/* Shrinking the array; not supposed to be able to fail. */
+	assert(result==0);
 }
 
 /*
@@ -178,44 +177,46 @@ exorcise(void) {
  */
 static
 void
-thread_killall(void) {
-    int i, result;
+thread_killall(void)
+{
+	int i, result;
 
-    assert(curspl > 0);
+	assert(curspl>0);
 
-    /*
-     * Move all sleepers to the zombie list, to be sure they don't
-     * wake up while we're shutting down.
-     */
+	/*
+	 * Move all sleepers to the zombie list, to be sure they don't
+	 * wake up while we're shutting down.
+	 */
 
-    for (i = 0; i < array_getnum(sleepers); i++) {
-        struct thread *t = array_getguy(sleepers, i);
-        kprintf("sleep: Dropping thread %s\n", t->t_name);
+	for (i=0; i<array_getnum(sleepers); i++) {
+		struct thread *t = array_getguy(sleepers, i);
+		kprintf("sleep: Dropping thread %s\n", t->t_name);
 
-        /*
-         * Don't do this: because these threads haven't
-         * been through thread_exit, thread_destroy will
-         * get upset. Just drop the threads on the floor,
-         * which is safer anyway during panic.
-         *
-         * array_add(zombies, t);
-         */
-    }
+		/*
+		 * Don't do this: because these threads haven't
+		 * been through thread_exit, thread_destroy will
+		 * get upset. Just drop the threads on the floor,
+		 * which is safer anyway during panic.
+		 *
+		 * array_add(zombies, t);
+		 */
+	}
 
-    result = array_setsize(sleepers, 0);
-    /* shrinking array: not supposed to fail */
-    assert(result == 0);
+	result = array_setsize(sleepers, 0);
+	/* shrinking array: not supposed to fail */
+	assert(result==0);
 }
 
 /*
  * Shut down the other threads in the thread system when a panic occurs.
  */
 void
-thread_panic(void) {
-    assert(curspl > 0);
+thread_panic(void)
+{
+	assert(curspl > 0);
 
-    thread_killall();
-    scheduler_killall();
+	thread_killall();
+	scheduler_killall();
 }
 
 /*
@@ -243,72 +244,75 @@ thread_panic(void) {
  */
 int
 one_thread_only() {
-    int s;
-    int n;
-    /* numthreads is a shared variable, so turn interrupts
-       off to ensure that we can inspect its value atomically */
-    s = splhigh();
-    n = numthreads;
-    splx(s);
-    return (n == 1);
+  int s;
+  int n;
+  /* numthreads is a shared variable, so turn interrupts
+     off to ensure that we can inspect its value atomically */
+  s = splhigh();
+  n = numthreads;
+  splx(s);
+  return(n==1);
 }
+
 
 /*
  * Thread initialization.
  */
 struct thread *
-thread_bootstrap(void) {
-    struct thread *me;
+thread_bootstrap(void)
+{
+	struct thread *me;
 
-    /* Create the data structures we need. */
-    sleepers = array_create();
-    if (sleepers == NULL) {
-        panic("Cannot create sleepers array\n");
-    }
+	/* Create the data structures we need. */
+	sleepers = array_create();
+	if (sleepers==NULL) {
+		panic("Cannot create sleepers array\n");
+	}
 
-    zombies = array_create();
-    if (zombies == NULL) {
-        panic("Cannot create zombies array\n");
-    }
+	zombies = array_create();
+	if (zombies==NULL) {
+		panic("Cannot create zombies array\n");
+	}
+	
+	/*
+	 * Create the thread structure for the first thread
+	 * (the one that's already running)
+	 */
+	me = thread_create("<boot/menu>");
+	if (me==NULL) {
+		panic("thread_bootstrap: Out of memory\n");
+	}
 
-    /*
-     * Create the thread structure for the first thread
-     * (the one that's already running)
-     */
-    me = thread_create("<boot/menu>");
-    if (me == NULL) {
-        panic("thread_bootstrap: Out of memory\n");
-    }
+	/*
+	 * Leave me->t_stack NULL. This means we're using the boot stack,
+	 * which can't be freed.
+	 */
 
-    /*
-     * Leave me->t_stack NULL. This means we're using the boot stack,
-     * which can't be freed.
-     */
+	/* Initialize the first thread's pcb */
+	md_initpcb0(&me->t_pcb);
 
-    /* Initialize the first thread's pcb */
-    md_initpcb0(&me->t_pcb);
+	/* Set curthread */
+	curthread = me;
 
-    /* Set curthread */
-    curthread = me;
+	/* Number of threads starts at 1 */
+	numthreads = 1;
 
-    /* Number of threads starts at 1 */
-    numthreads = 1;
-
-    /* Done */
-    return me;
+	/* Done */
+	return me;
 }
 
 /*
  * Thread final cleanup.
  */
 void
-thread_shutdown(void) {
-    array_destroy(sleepers);
-    sleepers = NULL;
-    array_destroy(zombies);
-    zombies = NULL;
-    // Don't do this - it frees our stack and we blow up
-    //thread_destroy(curthread);
+thread_shutdown(void)
+{
+	array_destroy(sleepers);
+	sleepers = NULL;
+	array_destroy(zombies);
+	zombies = NULL;
+	// Don't do this - it frees our stack and we blow up
+	//thread_destroy(curthread);
 }
 
 /*
@@ -317,106 +321,107 @@ thread_shutdown(void) {
  * DATA1 and DATA2 are passed to FUNC.
  */
 int
-thread_fork(const char *name,
-        void *data1, unsigned long data2,
-        void (*func)(void *, unsigned long),
-        struct thread **ret) {
-#if OPT_A2
+thread_fork(const char *name, 
+	    void *data1, unsigned long data2,
+	    void (*func)(void *, unsigned long),
+	    struct thread **ret)
+{
+    #if OPT_A2
     DEBUG(DB_A2FC, "DEBUG: Thread `%s` calling thread_fork.\n", curthread->t_name);
-#endif
-    struct thread *newguy;
-    int s, result;
+    #endif
+	struct thread *newguy;
+	int s, result;
 
-    /* Allocate a thread */
-    newguy = thread_create(name);
-    if (newguy == NULL) {
-        return ENOMEM;
-    }
+	/* Allocate a thread */
+	newguy = thread_create(name);
+	if (newguy==NULL) {
+		return ENOMEM;
+	}
 
-    /* Allocate a stack */
-    newguy->t_stack = kmalloc(STACK_SIZE);
-    if (newguy->t_stack == NULL) {
-        kfree(newguy->t_name);
-        kfree(newguy);
-        return ENOMEM;
-    }
+	/* Allocate a stack */
+	newguy->t_stack = kmalloc(STACK_SIZE);
+	if (newguy->t_stack==NULL) {
+		kfree(newguy->t_name);
+		kfree(newguy);
+		return ENOMEM;
+	}
 
-    /* stick a magic number on the bottom end of the stack */
-    newguy->t_stack[0] = 0xae;
-    newguy->t_stack[1] = 0x11;
-    newguy->t_stack[2] = 0xda;
-    newguy->t_stack[3] = 0x33;
+	/* stick a magic number on the bottom end of the stack */
+	newguy->t_stack[0] = 0xae;
+	newguy->t_stack[1] = 0x11;
+	newguy->t_stack[2] = 0xda;
+	newguy->t_stack[3] = 0x33;
 
-    /* Inherit the current directory */
-    if (curthread->t_cwd != NULL) {
-        VOP_INCREF(curthread->t_cwd);
-        newguy->t_cwd = curthread->t_cwd;
-    }
+	/* Inherit the current directory */
+	if (curthread->t_cwd != NULL) {
+		VOP_INCREF(curthread->t_cwd);
+		newguy->t_cwd = curthread->t_cwd;
+	}
 
-    /* Set up the pcb (this arranges for func to be called) */
-    md_initpcb(&newguy->t_pcb, newguy->t_stack, data1, data2, func);
+	/* Set up the pcb (this arranges for func to be called) */
+	md_initpcb(&newguy->t_pcb, newguy->t_stack, data1, data2, func);
 
-    /* Interrupts off for atomicity */
-    s = splhigh();
+	/* Interrupts off for atomicity */
+	s = splhigh();
 
-    /*
-     * Make sure our data structures have enough space, so we won't
-     * run out later at an inconvenient time.
-     */
-    result = array_preallocate(sleepers, numthreads + 1);
-    if (result) {
-        goto fail;
-    }
-    result = array_preallocate(zombies, numthreads + 1);
-    if (result) {
-        goto fail;
-    }
+	/*
+	 * Make sure our data structures have enough space, so we won't
+	 * run out later at an inconvenient time.
+	 */
+	result = array_preallocate(sleepers, numthreads+1);
+	if (result) {
+		goto fail;
+	}
+	result = array_preallocate(zombies, numthreads+1);
+	if (result) {
+		goto fail;
+	}
 
-    /* Do the same for the scheduler. */
-    result = scheduler_preallocate(numthreads + 1);
-    if (result) {
-        goto fail;
-    }
+	/* Do the same for the scheduler. */
+	result = scheduler_preallocate(numthreads+1);
+	if (result) {
+		goto fail;
+	}
 
-    /* Make the new thread runnable */
-    result = make_runnable(newguy);
-    if (result != 0) {
-        goto fail;
-    }
+	/* Make the new thread runnable */
+	result = make_runnable(newguy);
+	if (result != 0) {
+		goto fail;
+	}
 
-    /*
-     * Increment the thread counter. This must be done atomically
-     * with the preallocate calls; otherwise the count can be
-     * temporarily too low, which would obviate its reason for
-     * existence.
-     */
-    numthreads++;
+	/*
+	 * Increment the thread counter. This must be done atomically
+	 * with the preallocate calls; otherwise the count can be
+	 * temporarily too low, which would obviate its reason for
+	 * existence.
+	 */
+	numthreads++;
 
-    /* Done with stuff that needs to be atomic */
-    splx(s);
+	/* Done with stuff that needs to be atomic */
+	splx(s);
 
-    /*
-     * Return new thread structure if it's wanted.  Note that
-     * using the thread structure from the parent thread should be
-     * done only with caution, because in general the child thread
-     * might exit at any time.
-     */
-    if (ret != NULL) {
-        *ret = newguy;
-    }
+	/*
+	 * Return new thread structure if it's wanted.  Note that
+	 * using the thread structure from the parent thread should be
+	 * done only with caution, because in general the child thread
+	 * might exit at any time.
+	 */
+	if (ret != NULL) {
+		*ret = newguy;
+	}
 
-    return 0;
+	return 0;
 
-fail:
-    splx(s);
-    if (newguy->t_cwd != NULL) {
-        VOP_DECREF(newguy->t_cwd);
-    }
-    kfree(newguy->t_stack);
-    kfree(newguy->t_name);
-    kfree(newguy);
+ fail:
+	splx(s);
+	if (newguy->t_cwd != NULL) {
+		VOP_DECREF(newguy->t_cwd);
+	}
+	kfree(newguy->t_stack);
+	kfree(newguy->t_name);
+	kfree(newguy);
 
-    return result;
+	return result;
 }
 
 /*
@@ -424,85 +429,88 @@ fail:
  */
 static
 void
-mi_switch(threadstate_t nextstate) {
-    struct thread *cur, *next;
-    int result;
+mi_switch(threadstate_t nextstate)
+{
+	struct thread *cur, *next;
+	int result;
+	
+	/* Interrupts should already be off. */
+	assert(curspl>0);
 
-    /* Interrupts should already be off. */
-    assert(curspl > 0);
+	if (curthread != NULL && curthread->t_stack != NULL) {
+		/*
+		 * Check the magic number we put on the bottom end of
+		 * the stack in thread_fork. If these assertions go
+		 * off, it most likely means you overflowed your stack
+		 * at some point, which can cause all kinds of
+		 * mysterious other things to happen.
+		 */
+		assert(curthread->t_stack[0] == (char)0xae);
+		assert(curthread->t_stack[1] == (char)0x11);
+		assert(curthread->t_stack[2] == (char)0xda);
+		assert(curthread->t_stack[3] == (char)0x33);
+	}
+	
+	/* 
+	 * We set curthread to NULL while the scheduler is running, to
+	 * make sure we don't call it recursively (this could happen
+	 * otherwise, if we get a timer interrupt in the idle loop.)
+	 */
+	if (curthread == NULL) {
+		return;
+	}
+	cur = curthread;
+	curthread = NULL;
 
-    if (curthread != NULL && curthread->t_stack != NULL) {
-        /*
-         * Check the magic number we put on the bottom end of
-         * the stack in thread_fork. If these assertions go
-         * off, it most likely means you overflowed your stack
-         * at some point, which can cause all kinds of
-         * mysterious other things to happen.
-         */
-        assert(curthread->t_stack[0] == (char) 0xae);
-        assert(curthread->t_stack[1] == (char) 0x11);
-        assert(curthread->t_stack[2] == (char) 0xda);
-        assert(curthread->t_stack[3] == (char) 0x33);
-    }
+	/*
+	 * Stash the current thread on whatever list it's supposed to go on.
+	 * Because we preallocate during thread_fork, this should not fail.
+	 */
 
-    /*
-     * We set curthread to NULL while the scheduler is running, to
-     * make sure we don't call it recursively (this could happen
-     * otherwise, if we get a timer interrupt in the idle loop.)
-     */
-    if (curthread == NULL) {
-        return;
-    }
-    cur = curthread;
-    curthread = NULL;
+	if (nextstate==S_READY) {
+		result = make_runnable(cur);
+	}
+	else if (nextstate==S_SLEEP) {
+		/*
+		 * Because we preallocate sleepers[] during thread_fork,
+		 * this should never fail.
+		 */
+		result = array_add(sleepers, cur);
+	}
+	else {
+		assert(nextstate==S_ZOMB);
+		result = array_add(zombies, cur);
+	}
+	assert(result==0);
 
-    /*
-     * Stash the current thread on whatever list it's supposed to go on.
-     * Because we preallocate during thread_fork, this should not fail.
-     */
+	/*
+	 * Call the scheduler (must come *after* the array_adds)
+	 */
 
-    if (nextstate == S_READY) {
-        result = make_runnable(cur);
-    } else if (nextstate == S_SLEEP) {
-        /*
-         * Because we preallocate sleepers[] during thread_fork,
-         * this should never fail.
-         */
-        result = array_add(sleepers, cur);
-    } else {
-        assert(nextstate == S_ZOMB);
-        result = array_add(zombies, cur);
-    }
-    assert(result == 0);
+	next = scheduler();
 
-    /*
-     * Call the scheduler (must come *after* the array_adds)
-     */
+	/* update curthread */
+	curthread = next;
+	
+	/* 
+	 * Call the machine-dependent code that actually does the
+	 * context switch.
+	 */
+	md_switch(&cur->t_pcb, &next->t_pcb);
+	
+	/*
+	 * If we switch to a new thread, we don't come here, so anything
+	 * done here must be in mi_threadstart() as well, or be skippable,
+	 * or not apply to new threads.
+	 *
+	 * exorcise is skippable; as_activate is done in mi_threadstart.
+	 */
 
-    next = scheduler();
+	exorcise();
 
-    /* update curthread */
-    curthread = next;
-
-    /*
-     * Call the machine-dependent code that actually does the
-     * context switch.
-     */
-    md_switch(&cur->t_pcb, &next->t_pcb);
-
-    /*
-     * If we switch to a new thread, we don't come here, so anything
-     * done here must be in mi_threadstart() as well, or be skippable,
-     * or not apply to new threads.
-     *
-     * exorcise is skippable; as_activate is done in mi_threadstart.
-     */
-
-    exorcise();
-
-    if (curthread->t_vmspace) {
-        as_activate(curthread->t_vmspace);
-    }
+	if (curthread->t_vmspace) {
+		as_activate(curthread->t_vmspace);
+	}
 }
 
 /*
@@ -513,60 +521,62 @@ mi_switch(threadstate_t nextstate) {
  * gets called from exorcise().
  */
 void
-thread_exit(void) {
-#if OPT_A2
+thread_exit(void)
+{
+    #if OPT_A2
     DEBUG(DB_A2FC, "DEBUG: Thread `%s` calling thread_exit.\n", curthread->t_name);
-#endif
-    if (curthread->t_stack != NULL) {
-        /*
-         * Check the magic number we put on the bottom end of
-         * the stack in thread_fork. If these assertions go
-         * off, it most likely means you overflowed your stack
-         * at some point, which can cause all kinds of
-         * mysterious other things to happen.
-         */
-        assert(curthread->t_stack[0] == (char) 0xae);
-        assert(curthread->t_stack[1] == (char) 0x11);
-        assert(curthread->t_stack[2] == (char) 0xda);
-        assert(curthread->t_stack[3] == (char) 0x33);
-    }
+    #endif
+	if (curthread->t_stack != NULL) {
+		/*
+		 * Check the magic number we put on the bottom end of
+		 * the stack in thread_fork. If these assertions go
+		 * off, it most likely means you overflowed your stack
+		 * at some point, which can cause all kinds of
+		 * mysterious other things to happen.
+		 */
+		assert(curthread->t_stack[0] == (char)0xae);
+		assert(curthread->t_stack[1] == (char)0x11);
+		assert(curthread->t_stack[2] == (char)0xda);
+		assert(curthread->t_stack[3] == (char)0x33);
+	}
 
-    splhigh();
+	splhigh();
 
-    if (curthread->t_vmspace) {
-        /*
-         * Do this carefully to avoid race condition with
-         * context switch code.
-         */
-        struct addrspace *as = curthread->t_vmspace;
-        curthread->t_vmspace = NULL;
-        as_destroy(as);
-    }
+	if (curthread->t_vmspace) {
+		/*
+		 * Do this carefully to avoid race condition with
+		 * context switch code.
+		 */
+		struct addrspace *as = curthread->t_vmspace;
+		curthread->t_vmspace = NULL;
+		as_destroy(as);
+	}
 
-    if (curthread->t_cwd) {
-        VOP_DECREF(curthread->t_cwd);
-        curthread->t_cwd = NULL;
-    }
+	if (curthread->t_cwd) {
+		VOP_DECREF(curthread->t_cwd);
+		curthread->t_cwd = NULL;
+	}
 
-    assert(numthreads > 0);
-    numthreads--;
-    mi_switch(S_ZOMB);
+	assert(numthreads>0);
+	numthreads--;
+	mi_switch(S_ZOMB);
 
-    panic("Thread came back from the dead!\n");
+	panic("Thread came back from the dead!\n");
 }
 
 /*
  * Yield the cpu to another process, but stay runnable.
  */
 void
-thread_yield(void) {
-    int spl = splhigh();
+thread_yield(void)
+{
+	int spl = splhigh();
 
-    /* Check sleepers just in case we get here after shutdown */
-    assert(sleepers != NULL);
+	/* Check sleepers just in case we get here after shutdown */
+	assert(sleepers != NULL);
 
-    mi_switch(S_READY);
-    splx(spl);
+	mi_switch(S_READY);
+	splx(spl);
 }
 
 /*
@@ -581,13 +591,14 @@ thread_yield(void) {
  * interrupt handler.
  */
 void
-thread_sleep(const void *addr) {
-    // may not sleep in an interrupt handler
-    assert(in_interrupt == 0);
-
-    curthread->t_sleepaddr = addr;
-    mi_switch(S_SLEEP);
-    curthread->t_sleepaddr = NULL;
+thread_sleep(const void *addr)
+{
+	// may not sleep in an interrupt handler
+	assert(in_interrupt==0);
+	
+	curthread->t_sleepaddr = addr;
+	mi_switch(S_SLEEP);
+	curthread->t_sleepaddr = NULL;
 }
 
 /*
@@ -595,32 +606,33 @@ thread_sleep(const void *addr) {
  * ADDR.
  */
 void
-thread_wakeup(const void *addr) {
-    int i, result;
+thread_wakeup(const void *addr)
+{
+	int i, result;
+	
+	// meant to be called with interrupts off
+	assert(curspl>0);
+	
+	// This is inefficient. Feel free to improve it.
+	
+	for (i=0; i<array_getnum(sleepers); i++) {
+		struct thread *t = array_getguy(sleepers, i);
+		if (t->t_sleepaddr == addr) {
+			
+			// Remove from list
+			array_remove(sleepers, i);
+			
+			// must look at the same sleepers[i] again
+			i--;
 
-    // meant to be called with interrupts off
-    assert(curspl > 0);
-
-    // This is inefficient. Feel free to improve it.
-
-    for (i = 0; i < array_getnum(sleepers); i++) {
-        struct thread *t = array_getguy(sleepers, i);
-        if (t->t_sleepaddr == addr) {
-
-            // Remove from list
-            array_remove(sleepers, i);
-
-            // must look at the same sleepers[i] again
-            i--;
-
-            /*
-             * Because we preallocate during thread_fork,
-             * this should never fail.
-             */
-            result = make_runnable(t);
-            assert(result == 0);
-        }
-    }
+			/*
+			 * Because we preallocate during thread_fork,
+			 * this should never fail.
+			 */
+			result = make_runnable(t);
+			assert(result==0);
+		}
+	}
 }
 
 /*
@@ -628,19 +640,20 @@ thread_wakeup(const void *addr) {
  * ADDR. This is meant to be used only for diagnostic purposes.
  */
 int
-thread_hassleepers(const void *addr) {
-    int i;
-
-    // meant to be called with interrupts off
-    assert(curspl > 0);
-
-    for (i = 0; i < array_getnum(sleepers); i++) {
-        struct thread *t = array_getguy(sleepers, i);
-        if (t->t_sleepaddr == addr) {
-            return 1;
-        }
-    }
-    return 0;
+thread_hassleepers(const void *addr)
+{
+	int i;
+	
+	// meant to be called with interrupts off
+	assert(curspl>0);
+	
+	for (i=0; i<array_getnum(sleepers); i++) {
+		struct thread *t = array_getguy(sleepers, i);
+		if (t->t_sleepaddr == addr) {
+			return 1;
+		}
+	}
+	return 0;
 }
 
 /*
@@ -649,34 +662,34 @@ thread_hassleepers(const void *addr) {
  * thread_exit() can be called automatically.
  */
 void
-mi_threadstart(void *data1, unsigned long data2,
-        void (*func)(void *, unsigned long)) {
-#if OPT_A2
+mi_threadstart(void *data1, unsigned long data2, 
+	       void (*func)(void *, unsigned long))
+{
+    #if OPT_A2
     DEBUG(DB_A2FC, "DEBUG: Thread `%s` calling mi_threadstart.\n", curthread->t_name);
-#endif
-    /* If we have an address space, activate it */
-    if (curthread->t_vmspace) {
-        as_activate(curthread->t_vmspace);
-    }
+    #endif
+	/* If we have an address space, activate it */
+	if (curthread->t_vmspace) {
+		as_activate(curthread->t_vmspace);
+	}
 
-    /* Enable interrupts */
-    spl0();
+	/* Enable interrupts */
+	spl0();
 
 #if OPT_SYNCHPROBS
-    /* Yield a random number of times to get a good mix of threads */
-    {
-        int i, n;
-        n = random() % 161 + random() % 161;
-        for (i = 0; i < n; i++) {
-            thread_yield();
-        }
-    }
+	/* Yield a random number of times to get a good mix of threads */
+	{
+		int i, n;
+		n = random()%161 + random()%161;
+		for (i=0; i<n; i++) {
+			thread_yield();
+		}
+	}
 #endif
+	
+	/* Call the function */
+	func(data1, data2);
 
-    /* Call the function */
-    func(data1, data2);
-
-    /* Done. */
-    thread_exit();
+	/* Done. */
+	thread_exit();
 }
-

@@ -144,11 +144,11 @@ int pid_claimed(pid_t x) {
     struct pid_clist *p;
     for (p = unavailable_pids; p != NULL; p = p->next) {
         if (p->pid == x) {
-            splx(x);
+            splx(spl);
             return 1;
         }
     }
-    splx(x);
+    splx(spl);
     return 0;
 }
 

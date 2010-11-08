@@ -57,6 +57,7 @@ pid_t sys_fork(struct trapframe *tf) {
         child->t_vmspace = NULL;
         child->parent = NULL; //to prevent thread_destroy from freeing a non-existant pid
         md_initpcb(&child->t_pcb, child->t_stack, 0, 0, thread_exit); //set new thread to delete itself
+        splx(spl);
         return err;
     }
     //now copy the file table
@@ -66,6 +67,7 @@ pid_t sys_fork(struct trapframe *tf) {
             DEBUG(DB_THREADS, "Not enough memory to copy file table in fork. Closing child...\n");
             child->parent = NULL; //to prevent thread_destroy from freeing a non-existant pid
             md_initpcb(&child->t_pcb, child->t_stack, 0, 0, thread_exit); //set new thread to delete itself
+            splx(spl);
             return ENOMEM;
         }
     }

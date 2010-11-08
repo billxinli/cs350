@@ -7,7 +7,6 @@
 #include <vm.h>
 #include <machine/spl.h>
 #include <machine/tlb.h>
-#include "opt-A2.h"
 
 /*
  * Dumb MIPS-only "VM system" that is intended to only be just barely
@@ -62,20 +61,7 @@ free_kpages(vaddr_t addr)
 
 int
 vm_fault(int faulttype, vaddr_t faultaddress)
-{#if OPT_A2
-int as_valid_read_addr(struct addrspace *as, vaddr_t *check_addr){
-    (void)as;
-    (void)check_addr;
-    /* write this */
-    return 0;
-}
-int as_valid_write_addr(struct addrspace *as, vaddr_t *check_addr){
-    (void)as;
-    (void)check_addr;
-    /* write this */
-    return 0;
-}
-#endif /* OPT_A2 */
+{
 	vaddr_t vbase1, vtop1, vbase2, vtop2, stackbase, stacktop;
 	paddr_t paddr;
 	int i;
@@ -200,7 +186,7 @@ as_activate(struct addrspace *as)
 	(void)as;
 
 	spl = splhigh();
-(USERTOP - 12 * PAGE_SIZE)
+
 	for (i=0; i<NUM_TLB; i++) {
 		TLB_Write(TLBHI_INVALID(i), TLBLO_INVALID(), i);
 	}

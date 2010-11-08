@@ -331,10 +331,10 @@ as_copy(struct addrspace *old, struct addrspace **ret)
 #if OPT_A2
 int as_valid_read_addr(struct addrspace *as, vaddr_t *check_addr){
     if(check_addr < USERTOP){
-        if(check_addr >= as->as_vbase1 && check_addr < (as->as_vbase1 + as->as_npages1 * PAGE_SIZE)){
+        if((int) check_addr >= as->as_vbase1 && check_addr < (as->as_vbase1 + as->as_npages1 * PAGE_SIZE)){
             return 1;
         }
-        if(check_addr >= as->as_vbase2 && check_addr < (as->as_vbase2 + as->npages2 * PAGE_SIZE)){
+        if(check_addr >= as->as_vbase2 && check_addr < (as->as_vbase2 + as->as_npages2 * PAGE_SIZE)){
             return 1;
         }
         if(check_addr >= (USERTOP - DUMBVM_STACKPAGES * PAGE_SIZE)){
@@ -344,8 +344,8 @@ int as_valid_read_addr(struct addrspace *as, vaddr_t *check_addr){
     return 0;
 }
 int as_valid_write_addr(struct addrspace *as, vaddr_t *check_addr){
-    if(check_addr < USERTOP){
-        if(check_addr >= as->as_vbase2 && check_addr < (as->as_vbase2 + as->npages2 * PAGE_SIZE)){
+    if((int) check_addr < USERTOP){
+        if(check_addr >= as->as_vbase2 && check_addr < (as->as_vbase2 + as->as_npages2 * PAGE_SIZE)){
             return 1;
         }
         if(check_addr >= (USERTOP - DUMBVM_STACKPAGES * PAGE_SIZE)){

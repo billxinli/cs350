@@ -31,7 +31,11 @@ int sys_waitpid(pid_t PID, int *status, int options) {
         DEBUG(DB_PID, "Thread `%s` trying to wait on invalid PID %d\n", curthread->t_name, (int) PID);
         splx(spl);
         //error
-        return ESRCH;
+        if (pid_claimed(PID)) {
+            return ESRCH; //do not have permission to wait on that pid
+        } else {
+            return EINVAL; //not a valid pid
+        }
     }
     
     DEBUG(DB_PID, "Thread `%s`: wait_pid(%d)\n", curthread->t_name, (int) PID);

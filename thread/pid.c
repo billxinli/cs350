@@ -135,4 +135,21 @@ void pid_free(pid_t x) {
 }
 
 
+/*
+checks weather or not a PID is in use. This is only used when an invalid PID
+is used in waitpid to determine weather we should give error EINVAL or ESRCH
+*/
+int pid_claimed(pid_t x) {
+    int spl = splhigh();
+    struct pid_clist *p;
+    for (p = unavailable_pids; p != NULL; p = p->next) {
+        if (p->pid == x) {
+            splx(x);
+            return 1;
+        }
+    }
+    splx(x);
+    return 0;
+}
+
 #endif

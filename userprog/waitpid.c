@@ -19,6 +19,10 @@ int sys_waitpid(pid_t PID, int *status, int options) {
     if (as_valid_write_addr(curthread->t_vmspace, (vaddr_t *) status) == 0) {
         return EFAULT;
     }
+    if (((int) status) % 4 != 0) {
+        //misaligned memory address
+        return EFAULT;
+    }
     int spl = splhigh();
     if (options != 0) {
         DEBUG(DB_PID, "Invalid option passed to waitpid\n");

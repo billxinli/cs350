@@ -132,9 +132,11 @@ thread_destroy(struct thread *thread)
 	    pid_free(thread->pid);
 	}
 	
+	/**
 	assert(thread->ft != NULL);
 	ft_destroy(thread->ft);
 	kfree(thread->ft);
+	**/
 	
 	thread_wakeup((void *) thread->pid);
 	

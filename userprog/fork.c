@@ -53,6 +53,7 @@ pid_t sys_fork(struct trapframe *tf) {
     //we also don't need to copy t_cwd since it's already been coppied when thread_fork() was called
     int err = as_copy(curthread->t_vmspace, &child->t_vmspace); //copy the data to the child process's new address space
     if (err != 0) {
+        DEBUG(DB_THREADS, "Not enough memory to copy address space in fork. Closing child...\n");
         child->t_vmspace = NULL;
         child->parent = NULL; //to prevent thread_destroy from freeing a non-existant pid
         md_initpcb(&child->t_pcb, child->t_stack, 0, 0, thread_exit); //set new thread to delete itself
@@ -62,6 +63,7 @@ pid_t sys_fork(struct trapframe *tf) {
     int j;
     for (j = 0; j < ft_size(curthread->ft); j++) {
         if (ft_add(child->ft, ft_get(curthread->ft, j)) == -1) {
+            DEBUG(DB_THREADS, "Not enough memory to copy file table in fork. Closing child...\n");
             child->parent = NULL; //to prevent thread_destroy from freeing a non-existant pid
             md_initpcb(&child->t_pcb, child->t_stack, 0, 0, thread_exit); //set new thread to delete itself
             return ENOMEM;

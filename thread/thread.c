@@ -488,6 +488,10 @@ mi_switch(threadstate_t nextstate)
 	/* update curthread */
 	curthread = next;
 	
+	#if OPT_A2
+	as_activate(curthread->t_vmspace);
+	#endif
+	
 	/* 
 	 * Call the machine-dependent code that actually does the
 	 * context switch.

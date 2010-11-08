@@ -11,8 +11,6 @@
 
 #if OPT_A2
 #include <pid.h>
-#include <thread.h>
-#include <curthread.h>
 #endif
 
 /*
@@ -159,8 +157,6 @@ void md_forkentry(struct trapframe *tf) {
     struct trapframe my_trap = *tf;
     my_trap.tf_v0 = 0; //set return value to 0
     my_trap.tf_status = CST_IRQMASK | CST_IEp | CST_KUp; //not sure if this is necessary
-    ///tf_vaddr might need to be changed too, but I don't think so
-    ///tf_sp might also need to be changed
     my_trap.tf_epc += 4; //increment program counter
     mips_usermode(&my_trap);
     assert(0); //should not get here. mips_usermode does not return

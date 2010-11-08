@@ -263,7 +263,7 @@ int ft_remove(struct filetable* ft, int fti) {
         fd->numOwners--;
         //fixed what seems to be a memory leak --Matt
         if (fd->numOwners == 0) {
-            ///kfree(fd);
+            kfree(fd);
         }
         //
         splx(spl);

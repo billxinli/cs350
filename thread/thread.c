@@ -107,7 +107,6 @@ thread_destroy(struct thread *thread)
 	}
 	
 	#if OPT_A2
-	kfree(thread->children);
 	struct child_table *p;
 	for (p = thread->children; p != NULL;) {
 	    struct child_table *temp = p;
@@ -115,6 +114,7 @@ thread_destroy(struct thread *thread)
 	    p = p->next;
 	    kfree(temp);
 	}
+	kfree(thread->children);
 	int pid_update_success = 0;
 	if (thread->parent != NULL) {
         for (p = thread->parent->children; p != NULL;) {
@@ -131,10 +131,8 @@ thread_destroy(struct thread *thread)
 	    pid_free(thread->pid);
 	}
 	
-	/** did this break something?
 	ft_destroy(thread->ft);
 	kfree(thread->ft);
-	**/
 	
 	thread_wakeup((void *) thread->pid);
 	
@@ -487,10 +485,6 @@ mi_switch(threadstate_t nextstate)
 
 	/* update curthread */
 	curthread = next;
-	
-	#if OPT_A2
-	as_activate(curthread->t_vmspace);
-	#endif
 	
 	/* 
 	 * Call the machine-dependent code that actually does the

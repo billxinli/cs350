@@ -7,6 +7,7 @@
 #include <vm.h>
 #include <machine/spl.h>
 #include <machine/tlb.h>
+#include "opt-A2.h"
 
 /*
  * Dumb MIPS-only "VM system" that is intended to only be just barely
@@ -61,7 +62,20 @@ free_kpages(vaddr_t addr)
 
 int
 vm_fault(int faulttype, vaddr_t faultaddress)
-{
+{#if OPT_A2
+int as_valid_read_addr(struct addrspace *as, vaddr_t *check_addr){
+    (void)as;
+    (void)check_addr;
+    /* write this */
+    return 0;
+}
+int as_valid_write_addr(struct addrspace *as, vaddr_t *check_addr){
+    (void)as;
+    (void)check_addr;
+    /* write this */
+    return 0;
+}
+#endif /* OPT_A2 */
 	vaddr_t vbase1, vtop1, vbase2, vtop2, stackbase, stacktop;
 	paddr_t paddr;
 	int i;
@@ -186,7 +200,7 @@ as_activate(struct addrspace *as)
 	(void)as;
 
 	spl = splhigh();
-
+(USERTOP - 12 * PAGE_SIZE)
 	for (i=0; i<NUM_TLB; i++) {
 		TLB_Write(TLBHI_INVALID(i), TLBLO_INVALID(), i);
 	}
@@ -313,3 +327,31 @@ as_copy(struct addrspace *old, struct addrspace **ret)
 	*ret = new;
 	return 0;
 }
+
+#if OPT_A2
+int as_valid_read_addr(struct addrspace *as, vaddr_t *check_addr){
+    if(check_addr < USERTOP){
+        if(check_addr >= as->as_vbase1 && check_addr < (as->as_vbase1 + as->as_npages1 * PAGE_SIZE)){
+            return 1;
+        }
+        if(check_addr >= as->as_vbase2 && check_addr < (as->as_vbase2 + as->npages2 * PAGE_SIZE)){
+            return 1;
+        }
+        if(check_addr >= (USERTOP - DUMBVM_STACKPAGES * PAGE_SIZE)){
+            return 1;
+        }
+    }
+    return 0;
+}
+int as_valid_write_addr(struct addrspace *as, vaddr_t *check_addr){
+    if(check_addr < USERTOP){
+        if(check_addr >= as->as_vbase2 && check_addr < (as->as_vbase2 + as->npages2 * PAGE_SIZE)){
+            return 1;
+        }
+        if(check_addr >= (USERTOP - DUMBVM_STACKPAGES * PAGE_SIZE)){
+            return 1;
+        }
+    }
+    return 0;
+}
+#endif /* OPT_A2 */

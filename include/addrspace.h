@@ -3,6 +3,7 @@
 
 #include <vm.h>
 #include "opt-dumbvm.h"
+#include "opt-A2.h"
 
 struct vnode;
 
@@ -59,6 +60,10 @@ struct addrspace {
  *    as_define_stack - set up the stack region in the address space.
  *                (Normally called *after* as_complete_load().) Hands
  *                back the initial stack pointer for the new process.
+ *    
+ *    as_valid_read_addr - Check an address for valid user reads
+ *
+ *    as_valid_write_addr - Check an address for valid user writes
  */
 
 struct addrspace *as_create(void);
@@ -74,6 +79,11 @@ int               as_define_region(struct addrspace *as,
 int		  as_prepare_load(struct addrspace *as);
 int		  as_complete_load(struct addrspace *as);
 int               as_define_stack(struct addrspace *as, vaddr_t *initstackptr);
+
+#if OPT_A2
+int as_valid_read_addr(struct addrspace *as, vaddr_t *check_addr);
+int as_valid_write_addr(struct addrspace *as, vaddr_t *check_addr);
+#endif /* OPT_A2 */
 
 /*
  * Functions in loadelf.c

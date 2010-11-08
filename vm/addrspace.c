@@ -3,6 +3,7 @@
 #include <lib.h>
 #include <addrspace.h>
 #include <vm.h>
+#include "opt-A2.h"
 
 /*
  * Note! If OPT_DUMBVM is set, as is the case until you start the VM
@@ -98,7 +99,9 @@ as_prepare_load(struct addrspace *as)
 	/*
 	 * Write this.
 	 */
-
+int as_valid_readint as_valid_read_addr(struct addrspace *as, vaddr_t *check_addr);
+int as_valid_write_addr(struct addrspace *as, vaddr_t *check_addr);_addr(struct addrspace *as, vaddr_t *check_addr);
+int as_valid_write_addr(struct addrspace *as, vaddr_t *check_addr);
 	(void)as;
 	return 0;
 }
@@ -128,4 +131,19 @@ as_define_stack(struct addrspace *as, vaddr_t *stackptr)
 	
 	return 0;
 }
+
+#if OPT_A2
+int as_valid_read_addr(struct addrspace *as, vaddr_t *check_addr){
+    (void)as;
+    (void)check_addr;
+    /* write this */
+    return 0;
+}
+int as_valid_write_addr(struct addrspace *as, vaddr_t *check_addr){
+    (void)as;
+    (void)check_addr;
+    /* write this */
+    return 0;
+}
+#endif /* OPT_A2 */
 

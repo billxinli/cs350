@@ -64,7 +64,9 @@ int sys_write(int *retval, int fdn, void *buf, size_t nbytes) {
 
     if (writelock == NULL) {
         writelock = lock_create("WriteLock");
-        assert(writelock != NULL);
+        if (writelock == NULL) {
+            return ENOMEM;
+        }
     }
 
     //Get the file descriptor from the opened list of file descriptors that the current thread has, based on the fdn given.

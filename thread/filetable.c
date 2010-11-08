@@ -258,11 +258,11 @@ int ft_remove(struct filetable* ft, int fti) {
     if (fd != NULL) {
         q_addtail(ft->nextfiledescriptor, (void *) fd->fdn);
         int spl = splhigh();
-        vfs_close(fd->fdvnode);
     
         fd->numOwners--;
-        //fixed what seems to be a memory leak --Matt
+
         if (fd->numOwners == 0) {
+            vfs_close(fd->fdvnode);
             kfree(fd);
         }
         //

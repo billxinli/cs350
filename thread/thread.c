@@ -91,7 +91,7 @@ void
 thread_destroy(struct thread *thread)
 {
     #if OPT_A2
-    DEBUG(DB_THREADS, "DEBUG: Calling destroy on thread `%s`.\n", thread->t_name);
+    DEBUG(DB_THREADS, "DEBUG: Calling thread_destroy on thread `%s`.\n", thread->t_name);
     #endif
 	assert(thread != curthread);
 
@@ -114,7 +114,6 @@ thread_destroy(struct thread *thread)
 	    p = p->next;
 	    kfree(temp);
 	}
-	kfree(thread->children);
 	int pid_update_success = 0;
 	if (thread->parent != NULL) {
         for (p = thread->parent->children; p != NULL;) {
@@ -123,6 +122,8 @@ thread_destroy(struct thread *thread)
                 p->finished = 1;
                 p->exit_code = thread->exit_status;
                 p = NULL; //won't let me use break in a for loop, so I'll do this instead
+            } else {
+                p = p->next;
             }
         }
         assert(pid_update_success);
@@ -131,6 +132,7 @@ thread_destroy(struct thread *thread)
 	    pid_free(thread->pid);
 	}
 	
+	assert(thread->ft != NULL);
 	ft_destroy(thread->ft);
 	kfree(thread->ft);
 	

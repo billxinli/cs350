@@ -51,7 +51,7 @@
 #define DB_KMALLOC     0x800
 #define DB_PID        0x1000
 #define DB_KFREE      0x2000
-#define DB_ALL        0x2fff //all debug messages
+#define DB_ALL        0x3fff //all debug messages
 
 extern u_int32_t dbflags;
 

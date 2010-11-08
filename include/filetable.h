@@ -43,14 +43,11 @@ struct filetable;
 struct filetable {
 	//The table of file descriptors
 	struct array *filedescriptor;
-	//The list of freed fd index
-	struct queue *nextfiledescriptor;
 	//The size of the filetable
 	int size;
 };
 
 struct filetable *ft_create();
-//int ft_copy(struct filetable *ftsrc, struct filetable *fttrg);
 int ft_attachstds(struct filetable *ft);
 int ft_array_size(struct filetable *ft);
 int ft_size(struct filetable *ft);

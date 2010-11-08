@@ -196,7 +196,7 @@ int ft_add(struct filetable* ft, struct filedescriptor* fd) {
         }
     }
     if (fdn == OPEN_MAX) {
-        return -1
+        return -1;
     }
     if (array_add(ft->filedescriptor, fd) != 0) { //if error (ENOMEM)
         return -1;

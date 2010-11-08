@@ -287,6 +287,7 @@ int ft_destroy(struct filetable* ft) {
     for (i = ft_array_size(ft) - 1; i >= 0; i--) {
         ft_remove(ft, i);
     }
+    kfree(ft);
     return 1;
 }
 

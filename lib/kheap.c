@@ -1,3 +1,5 @@
+#include "opt-A2.h"
+
 #include <types.h>
 #include <lib.h>
 #include <vm.h>
@@ -569,6 +571,9 @@ kfree(void *ptr)
 	 * Try subpage first; if that fails, assume it's a big allocation.
 	 */
 	if (ptr == NULL) {
+	    #if OPT_A2
+	    DEBUG(DB_KFREE, "[!] DEBUG: Calling kfree on NULL pointer!\n");
+	    #endif
 		return;
 	} else if (subpage_kfree(ptr)) {
 		assert((vaddr_t)ptr%PAGE_SIZE==0);

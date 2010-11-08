@@ -52,12 +52,21 @@ EIO 	A hardware I/O error occurred writing the data.
 #include <vfs.h>
 #include <vnode.h>
 #include <vm.h>
+#include <synch.h>
+
+struct lock *writelock;
 
 int sys_write(int *retval, int fdn, void *buf, size_t nbytes) {
     //Check for Bad memory reference.
     if (!buf || (u_int32_t) buf >= MIPS_KSEG0 || buf == NULL) {
         return EFAULT;
     }
+
+    if (writelock == NULL) {
+        writelock = lock_create("WriteLock");
+        assert(writelock != NULL);
+    }
+
     //Get the file descriptor from the opened list of file descriptors that the current thread has, based on the fdn given.
     struct filedescriptor* fd = ft_get(curthread->ft, fdn);
     if (fd == NULL) {
@@ -74,12 +83,14 @@ int sys_write(int *retval, int fdn, void *buf, size_t nbytes) {
     //Make the uio
     struct uio *u = kmalloc(sizeof (struct uio));
     mk_kuio(u, (void *) buf, nbytes, fd->offset, UIO_WRITE);
-    //Disable interrupt
-    int spl;
-    spl = splhigh();
+
+
+    lock_acquire(writelock);
+
     //Write
     int sizewrite = VOP_WRITE(fd->fdvnode, u);
-    splx(spl);
+    lock_release(writelock);
+
     if (sizewrite) {
         return sizewrite;
     }

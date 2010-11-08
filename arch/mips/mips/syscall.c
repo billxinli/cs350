@@ -78,7 +78,7 @@ void mips_syscall(struct trapframe *tf) {
 
         case SYS_waitpid:
             //3
-            err = sys_waitpid((pid_t) tf->tf_a0, &retval, (int) tf->tf_a2);
+            err = sys_waitpid((pid_t) tf->tf_a0, (void *) tf->tf_a1, (int) tf->tf_a2);
             //the below is neccesary since waitpid actually returns a value
             if (err >= MIN_PID) { //then it's a return value, not an error code
                 retval = err;

@@ -8,11 +8,15 @@
 #include <child_table.h>
 #include <thread.h>
 #include <curthread.h>
+#include <vm.h>
 #include <kern/errno.h>
 #include <lib.h>
 
+#include <addrspace.h>
+
+
 int sys_waitpid(pid_t PID, int *status, int options) {
-    if (status == NULL) {
+    if (as_valid_write_addr(curthread->t_vmspace, (vaddr_t *) status) == 0) {
         return EFAULT;
     }
     int spl = splhigh();

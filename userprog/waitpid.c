@@ -12,6 +12,9 @@
 #include <lib.h>
 
 int sys_waitpid(pid_t PID, int *status, int options) {
+    if (status == NULL) {
+        return EFAULT;
+    }
     int spl = splhigh();
     if (options != 0) {
         DEBUG(DB_PID, "Invalid option passed to waitpid\n");

@@ -670,14 +670,14 @@ mi_threadstart(void *data1, unsigned long data2,
     DEBUG(DB_THREADS, "DEBUG: Thread `%s` calling mi_threadstart.\n", curthread->t_name);
     #endif
     
-    if (inheritedLock != NULL) {
+    if (curthread->inheritedLock != NULL) {
         lock_acquire(inheritedLock);
     }
 	/* If we have an address space, activate it */
-	if (curthread->t_vmspace) {
+	if (curthread->curthread->t_vmspace) {
 		as_activate(curthread->t_vmspace);
 	}
-	if (inheritedLock != NULL) {
+	if (curthread->inheritedLock != NULL) {
 	    lock_release(inheritedLock);
 	}
 

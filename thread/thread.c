@@ -115,6 +115,7 @@ thread_destroy(struct thread *thread)
 	    kfree(temp);
 	}
 	int pid_update_success = 0;
+	int spl = splhigh();
 	if (thread->parent != NULL) {
         for (p = thread->parent->children; p != NULL;) {
             if (p->pid == thread->pid) {
@@ -131,6 +132,7 @@ thread_destroy(struct thread *thread)
 	} else {
 	    pid_free(thread->pid);
 	}
+	splx(spl);
 	
 	assert(thread->ft != NULL);
 	ft_destroy(thread->ft);

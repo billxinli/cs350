@@ -56,7 +56,7 @@ error codes may be returned for other errors not mentioned here.
 
 int sys_read(int *retval, int fdn, void *buf, size_t nbytes) {
     //Check for Bad memory reference.
-    if (!buf || (u_int32_t) buf >= MIPS_KSEG0 || !as_valid_read_addr(curthread->t_vmspace,buf)) {
+    if (!buf || (u_int32_t) buf >= MIPS_KSEG0 || !as_valid_write_addr(curthread->t_vmspace,buf)) {
         return EFAULT;
     }
     //Get the file descriptor from the opened list of file descriptors that the current thread has, based on the fdn given.

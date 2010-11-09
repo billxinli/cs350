@@ -58,7 +58,7 @@ struct lock *writelock;
 
 int sys_write(int *retval, int fdn, void *buf, size_t nbytes) {
     //Check for Bad memory reference.
-    if (!buf || (u_int32_t) buf >= MIPS_KSEG0 || buf == NULL ||!as_valid_write_addr(curthread->t_vmspace,buf)) {
+    if (!buf || (u_int32_t) buf >= MIPS_KSEG0 || buf == NULL  || !as_valid_read_addr(curthread->t_vmspace,buf)) {
         return EFAULT;
     }
     if (writelock == NULL) {

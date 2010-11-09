@@ -1,0 +1,5 @@
+Question 1: How are file descriptors associated with vnodes? What data structures are used to maintain this association? 
+
+Vnodes are associated to file descriptors by file descriptors (using the filedescriptor struct). The file descriptor structure contains other useful information, such as the offset and mode with respect to the file. The file descriptor structure is stored in an array called the file table (using the filetable struct) inside each thread.
+
+The reason that the file table structure uses an array to store the file descriptors is because there is the index to value associations, such that the file descriptor id is the index of the array.

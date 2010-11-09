@@ -16,28 +16,34 @@
 #include <filetable.h>
 
 pid_t sys_fork(struct trapframe *tf) {
-    int spl = splhigh();
     char *child_name = kmalloc(sizeof(char) * (strlen(curthread->t_name)+9));
     if (child_name == NULL) {
-        splx(spl);
         //error
         return ENOMEM;
     }
     child_name = strcpy(child_name, curthread->t_name);
     struct child_table *new_child = kmalloc(sizeof(struct child_table));
     if (new_child == NULL) {
-        splx(spl);
         //error
         return ENOMEM;
     }
     struct thread *child = NULL;
     
+    if (forkLock == NULL) {
+        forkLock = lock_create("Fork Lock");
+        if (forkLock == NULL) {
+            return ENOMEM;
+        }
+    }
+    
+    lock_acquire(forkLock);
+    
     int result = thread_fork(strcat(child_name, "'s child"), tf, 0, md_forkentry, &child);
    
     if (result != 0) {
         kfree(new_child);
-        splx(spl);
         //ERROR
+        lock_release(forkLock);
         return result;
     }  
     
@@ -57,7 +63,7 @@ pid_t sys_fork(struct trapframe *tf) {
         child->t_vmspace = NULL;
         child->parent = NULL; //to prevent thread_destroy from freeing a non-existant pid
         md_initpcb(&child->t_pcb, child->t_stack, 0, 0, thread_exit); //set new thread to delete itself
-        splx(spl);
+        lock_release(forkLock);
         return err;
     }
     //now copy the file table
@@ -67,7 +73,7 @@ pid_t sys_fork(struct trapframe *tf) {
             DEBUG(DB_THREADS, "Not enough memory to copy file table in fork. Closing child...\n");
             child->parent = NULL; //to prevent thread_destroy from freeing a non-existant pid
             md_initpcb(&child->t_pcb, child->t_stack, 0, 0, thread_exit); //set new thread to delete itself
-            splx(spl);
+            lock_release(forkLock);
             return ENOMEM;
         }
     }
@@ -75,7 +81,8 @@ pid_t sys_fork(struct trapframe *tf) {
     
     int retval = child->pid;
     
-    splx(spl);
+    lock_release(forkLock);
+    
     
     return retval; //the parent thread returns this.
 }

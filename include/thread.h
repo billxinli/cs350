@@ -12,6 +12,7 @@
 #if OPT_A2
 #include <types.h>
 #include <child_table.h>
+#include <synch.h>
 #endif
 
 struct addrspace;
@@ -39,6 +40,12 @@ struct thread {
 	 * This is the filetable for the thread.
 	 */
 	struct filetable *ft;
+	
+	/*
+	 Locks
+	*/
+	struct lock *forkLock;
+	struct lock *inheritedLock;
 	#endif
 	
 	/*

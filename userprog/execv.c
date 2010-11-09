@@ -62,37 +62,42 @@ int sys_execv(char *progname, char ** args) {
     assert(curthread->t_vmspace != NULL);
     
     //check the arguments are valid pointers
-    if(!(as_valid_read_addr(curthread->t_vmspace,(vaddr_t) progname) && as_valid_read_addr(curthread->t_vmspace,(vaddr_t) args))){
+    if(!(as_valid_read_addr(curthread->t_vmspace,(vaddr_t*) progname) && as_valid_read_addr(curthread->t_vmspace,(vaddr_t*) args))){
         return EFAULT;
+    }
+    if(strlen(progname) < 1){
+        return EINVAL;
     }
 
     /* We need to copy the programname and args into kernel space */
     //first we need to calculate the size of the args
     int nargs = 0;
-    char** kern_argumentPointer = args;
-    while(*kern_argumentPointer != NULL){
+    int i = 0;
+    while(args[i] != NULL){
         nargs++;
-        kern_argumentPointer += sizeof(char**);
+        i++;
     }
     
     //check that we don't have too many arguments
-    //if(nargs > 16){ //same as MAXMENUARGS from the menu
-        //return E2BIG;
-    //}
+    if(nargs > 16){ //same as MAXMENUARGS from the menu
+        return E2BIG;
+    }
     
     //allocate space for copied progname
     char* kern_progname = kmalloc(sizeof(char) * (strlen(progname) + 1));
     //copy the programname
-    copyinstr((const_userptr_t) progname, kern_progname, strlen(progname),NULL);
+    copyinstr((const_userptr_t) progname, kern_progname, (strlen(progname) + 1),NULL);
     
     //allocate space for copied args array
-    kern_argumentPointer = kmalloc(sizeof(char*) * nargs);
+    char** kern_argumentPointer = kmalloc(sizeof(char*) * nargs);
     //allocate the space for the argument strings and copy them into kernel memory
-    int i = 0;
     for(i = 0;i < nargs;i++){
-        if(!as_valid_read_addr(curthread->t_vmspace, args[i])){
+        if(!as_valid_read_addr(curthread->t_vmspace,(vaddr_t*) args[i])){
+            return EFAULT;
+        }
+        if(strlen(args[i]) < 1){
             return EINVAL;
-        } 
+        }
         int arg_size = strlen(args[i]);
         kern_argumentPointer[i] = kmalloc(sizeof(char) * (arg_size + 1));
         copyinstr((const_userptr_t) args[i], kern_argumentPointer[i], (arg_size + 1),NULL);
@@ -186,7 +191,7 @@ int sys_execv(char *progname, char ** args) {
     }
     kfree(kern_argumentPointer);
     
-    DEBUG(DB_EXEC, "EXECV[%d] Leaving EXECV (md_usermode) - progname: [%s] - Address space: [%d]\n",(int)curthread->pid, progname, (int)curthread->t_vmspace);
+    DEBUG(DB_EXEC, "EXECV[%d] Leaving EXECV (md_usermode) - nargs:[%d]\n",(int)curthread->pid,nargs);
     md_usermode(nargs /*argc*/, (userptr_t) (stackptr + 4) /*userspace addr of argv*/, stackptr, entrypoint);
 
     /* md_usermode does not return */

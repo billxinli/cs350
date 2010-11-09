@@ -16,6 +16,7 @@
 #include <filetable.h>
 
 pid_t sys_fork(struct trapframe *tf) {
+    int spl = splhigh();
     char *child_name = kmalloc(sizeof(char) * (strlen(curthread->t_name)+9));
     if (child_name == NULL) {
         //error
@@ -29,21 +30,11 @@ pid_t sys_fork(struct trapframe *tf) {
     }
     struct thread *child = NULL;
     
-    if (curthread->forkLock == NULL) {
-        curthread->forkLock = lock_create("Fork Lock");
-        if (curthread->forkLock == NULL) {
-            return ENOMEM;
-        }
-    }
-    
-    lock_acquire(curthread->forkLock);
-    
     int result = thread_fork(strcat(child_name, "'s child"), tf, 0, md_forkentry, &child);
    
     if (result != 0) {
         kfree(new_child);
         //ERROR
-        lock_release(curthread->forkLock);
         return result;
     }  
     
@@ -63,7 +54,6 @@ pid_t sys_fork(struct trapframe *tf) {
         child->t_vmspace = NULL;
         child->parent = NULL; //to prevent thread_destroy from freeing a non-existant pid
         md_initpcb(&child->t_pcb, child->t_stack, 0, 0, thread_exit); //set new thread to delete itself
-        lock_release(curthread->forkLock);
         return err;
     }
     //now copy the file table
@@ -73,17 +63,13 @@ pid_t sys_fork(struct trapframe *tf) {
             DEBUG(DB_THREADS, "Not enough memory to copy file table in fork. Closing child...\n");
             child->parent = NULL; //to prevent thread_destroy from freeing a non-existant pid
             md_initpcb(&child->t_pcb, child->t_stack, 0, 0, thread_exit); //set new thread to delete itself
-            lock_release(curthread->forkLock);
             return ENOMEM;
         }
     }
     
     
     int retval = child->pid;
-    
-    lock_release(curthread->forkLock);
-    
-    
+    splx(spl);
     return retval; //the parent thread returns this.
 }
 

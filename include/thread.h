@@ -44,8 +44,6 @@ struct thread {
 	/*
 	 Locks
 	*/
-	struct lock *forkLock;
-	struct lock *inheritedLock;
 	#endif
 	
 	/*

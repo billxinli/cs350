@@ -334,10 +334,6 @@ thread_fork(const char *name,
 	if (newguy==NULL) {
 		return ENOMEM;
 	}
-	
-	#if OPT_A2
-	newguy->inheritedLock = curthread->forkLock;
-	#endif
 
 	/* Allocate a stack */
 	newguy->t_stack = kmalloc(STACK_SIZE);
@@ -670,15 +666,9 @@ mi_threadstart(void *data1, unsigned long data2,
     DEBUG(DB_THREADS, "DEBUG: Thread `%s` calling mi_threadstart.\n", curthread->t_name);
     #endif
     
-    if (curthread->inheritedLock != NULL) {
-        lock_acquire(curthread->inheritedLock);
-    }
 	/* If we have an address space, activate it */
 	if (curthread->t_vmspace) {
 		as_activate(curthread->t_vmspace);
-	}
-	if (curthread->inheritedLock != NULL) {
-	    lock_release(curthread->inheritedLock);
 	}
 
 	/* Enable interrupts */

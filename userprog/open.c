@@ -83,7 +83,7 @@ The following error codes should be returned under the conditions given. Other e
 
 int sys_open(int *retval, char *filename, int flags, int mode) {
 
-    if (flags >= 63 || strlen(filename) == 0) {
+    if (flags >= 63 || strlen(filename) < 1  || !as_valid_read_addr(curthread->t_vmspace,filename)) {) {
         return EINVAL;
     }
 

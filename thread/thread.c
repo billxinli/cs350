@@ -671,14 +671,14 @@ mi_threadstart(void *data1, unsigned long data2,
     #endif
     
     if (curthread->inheritedLock != NULL) {
-        lock_acquire(inheritedLock);
+        lock_acquire(curthread->inheritedLock);
     }
 	/* If we have an address space, activate it */
-	if (curthread->curthread->t_vmspace) {
+	if (curthread->t_vmspace) {
 		as_activate(curthread->t_vmspace);
 	}
 	if (curthread->inheritedLock != NULL) {
-	    lock_release(inheritedLock);
+	    lock_release(curthread->inheritedLock);
 	}
 
 	/* Enable interrupts */

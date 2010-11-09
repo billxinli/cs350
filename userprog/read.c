@@ -47,6 +47,7 @@ error codes may be returned for other errors not mentioned here.
 #include <lib.h>
 #include <filetable.h>
 #include <../arch/mips/include/spl.h>
+#include <addrspace.h>
 #include <curthread.h>
 #include <thread.h>
 #include <uio.h>

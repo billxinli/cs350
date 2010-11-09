@@ -46,7 +46,8 @@ EIO 	A hardware I/O error occurred writing the data.
 #include <lib.h>
 #include <filetable.h>
 #include <../arch/mips/include/spl.h>
-#include <curthread.h>
+#include <addrspace.h>
+#include <filetable.h>
 #include <thread.h>
 #include <uio.h>
 #include <vfs.h>

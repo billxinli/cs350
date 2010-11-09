@@ -73,6 +73,7 @@ The following error codes should be returned under the conditions given. Other e
 #include <kern/unistd.h>
 #include <kern/stat.h>
 #include <lib.h>
+#include <addrspace.h>
 #include <filetable.h>
 #include <../arch/mips/include/spl.h>
 #include <curthread.h>
@@ -83,7 +84,7 @@ The following error codes should be returned under the conditions given. Other e
 
 int sys_open(int *retval, char *filename, int flags, int mode) {
 
-    if (flags >= 63 || strlen(filename) < 1  || !as_valid_read_addr(curthread->t_vmspace,filename)) {) {
+    if (flags >= 63 || strlen(filename) < 1  || !as_valid_read_addr(curthread->t_vmspace, (vaddr_t *)filename)) {
         return EINVAL;
     }
 

@@ -32,9 +32,9 @@ struct thread {
 	/**********************************************************/
 	
 	#if OPT_A2
-	pid_t pid;
-	struct thread *parent;
-	struct child_table *children;
+	volatile pid_t pid;
+	volatile struct thread *parent;
+	volatile struct child_table *children;
 	int exit_status;
 	/*
 	 * This is the filetable for the thread.

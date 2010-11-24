@@ -402,6 +402,11 @@ file      userprog/fork.c
 #
 
 optofffile dumbvm   vm/addrspace.c
+file	vm/coremap.c
+file	vm/pt.c
+file	vm/segments.c
+file	vm/vm_tlb.c
+file	vm/swapfile.c
 
 #
 # Network
@@ -470,6 +475,7 @@ defoption A0
 defoption A1
 defoption A2
 defoption A3
+file	vm/vmstats.c
 defoption A4
 defoption A5
 

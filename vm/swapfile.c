@@ -85,11 +85,11 @@ swap_index_t swap_write(STRUCT_PAGE *data) {
 /*
 Loads a page from swapspace into RAM at the physical address specified by phys_addr
 */
-void swap_read(paddr_t phys_addr, int n) {
+void swap_read(paddr_t phys_addr, swap_index_t n) {
     ///I'm not sure that I'm doing this right (specifically the PADDR_TO_KVADDR doesn't seem right)
     STRUCT_PAGE *page;
     lock_acquire(swapLock);
-    mk_kuio(u, (void *) PADDR_TO_KVADDR(phys_addr) , sizeof(STRUCT_PAGE), n * sizeof(STRUCT_PAGE), UIO_READ);
+    mk_kuio(u, (void *) PADDR_TO_KVADDR(phys_addr) , sizeof(STRUCT_PAGE), (int) n * sizeof(STRUCT_PAGE), UIO_READ);
     VOP_READ(swapfile, u);
     swap_free_page(n);
     _vmstats_inc(VMSTAT_SWAP_FILE_READ);

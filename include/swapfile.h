@@ -13,7 +13,7 @@ void create_swap();
 int swap_full();
 void swap_free_page(int n);
 swap_index_t swap_write(char[PAGE_SIZE]);
-void swap_read(paddr_t phys_addr, int n);
+void swap_read(paddr_t phys_addr, swap_index_t n);
 
 #endif
 

@@ -4,6 +4,8 @@
 #include <uio.h>
 #include <synch.h>
 #include <vm.h>
+#include <kern/unistd.h>
+#include <fs.h>
 
 #define SWAP_SIZE = 4194304; //4 * 1024 * 1024 (we have a 4MB page file)
 
@@ -33,7 +35,11 @@ void create_swap() {
         freePages[i].next = &freePages[i+1].next
     }
     freePages[SWAP_PAGES - 1].next = NULL: //fix the last element's next pointer
-    ///TODO: Set up swapfile file (VOP_CREAT?? VOP_OPEN)
+    //I'm not 100% confident I'm doing this exactly right, but I think this works
+    struct vnode *root;
+    vfs_lookup("/", root); 
+    VOP_CREAT(root , "pagefile.sys", O_RDWR & O_CREAT, &swapfile);
+    VOP_OPEN(swapfile, O_RDWR);
 }
 
 /*

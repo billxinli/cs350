@@ -11,7 +11,7 @@
 #define SWAP_SIZE = 4194304
 
 ///TODO: data type for pages
-#define STRUCT_PAGE (void *)
+#define STRUCT_PAGE char[PAGE_SIZE];
 
 struct vnode swapfile;
 const int SWAP_PAGES = SWAP_SIZE / PAGE_SIZE;;

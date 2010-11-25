@@ -9,10 +9,30 @@
 
 typedef int swap_index_t;
 
+/*
+Creates a swapspace file for use by the operating system. May only be called once
+*/
 void create_swap();
+
+/*
+Checks to see if the swap file is full. Returns 1 if all pages are used and 0 otherwise
+*/
 int swap_full();
-void swap_free_page(int n);
+
+/*
+Frees a page in the swap file for reuse (but does not zero it)
+*/
+void swap_free_page(swap_index_t n);
+
+/*
+Writes data to a free page in the swapfile and returns the index of the page
+in the swapfile
+*/
 swap_index_t swap_write(char[PAGE_SIZE]);
+
+/*
+Reads the page at index n in the swapfile into memory at physical address phys_addr
+*/
 void swap_read(paddr_t phys_addr, swap_index_t n);
 
 #endif

@@ -50,11 +50,11 @@ int swap_full() {
     return (freePages == NULL);
 }
 
-// frees a page for use in the swap file
-void swap_free_page(int n) {
+// frees a page for use in the swap file, zeroing it if the second argument is true (1)
+void swap_free_page(swap_index_t n, int zero) {
     lock_acquire(swapLock);
-    pageList[n].next = freePages;
-    freePages = pageList[n];`
+    pageList[(int) n].next = freePages;
+    freePages = pageList[(int) n];
     lock_release(swapLock);
 }
 

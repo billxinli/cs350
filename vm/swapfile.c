@@ -3,26 +3,51 @@
 #include <vmstats.h>
 #include <uio.h>
 #include <synch.h>
+#include <vm.h>
 
-#define SWAP_SIZE = 4194304; //4 * 1024 * 1024
+#define SWAP_SIZE = 4194304; //4 * 1024 * 1024 (we have a 4MB page file)
+
+///TODO: Replace /* page type */ throughout the file with the data type used for pages
 
 struct vnode swapfile;
-int SWAP_PAGES;
+const int SWAP_PAGES = SWAP_SIZE / PAGE_SIZE;;
 struct lock swapLock;
 
+struct free_list {
+    int index;
+    struct free_list *next;
+};
+
+struct free_list *freePages; //The first free page
+struct free_list *pageList; //link to the beginning of the array containing the free pages (not necessarily page that is actually free)
+
 void create_swap() {
-    //TODO
-    SWAP_PAGES = SWAP_SIZE / PAGE_SIZE;
     lock_create(swapLock, "Swapfile Lock");
     _vmstats_init();
-    /** sets up the swap file */
-    /** sets up any structures needed for keeping track of used pages **/
+    paddr_t physical_address = ram_stealmem(((sizeof(free_list) * SWAP_PAGES) + PAGE_SIZE - 1) / PAGE_SIZE);
+    freePages = (free_list *) PADDR_TO_KVADDR(physical_address);
+    pageList = freePages;
+    for (int i = 0; i < SWAP_PAGES; i++) {
+        freePages[i].index = i;
+        freePages[i].next = &freePages[i+1].next
+    }
+    freePages[SWAP_PAGES - 1].next = NULL: //fix the last element's next pointer
+    /** TODO: set up the swap file */
+    /** TODO: set up any structures needed for keeping track of used pages **/
 }
 
+/*
+returns 1 is the swap is full, 0 otherwise
+*/
+int swap_full() {
+    return (freePages == NULL);
+}
+
+// frees a page for use in the swap file
 void swap_free_page(int n) {
-    //TODO
     lock_acquire(swapLock);
-    /** Frees a page from the swap file */
+    pageList[n].next = freePages;
+    freePages = pageList[n];`
     lock_release(swapLock);
 }
 
@@ -39,7 +64,12 @@ int swap_write(/* page type */ *data) {
     //TODO
     int pagenum;
     lock_acquire(swapLock);
-    ///TODO: Find a free page in the swap file (if there is one)
+    if (freePages == NULL) {
+        panic("Out of memory!");
+    } else {
+        pagenum = freePages.index;
+        freePages = freePages.next;
+    }
     swap_write_page(data, pagenum);
     _vmstats_inc(VMSTAT_SWAP_FILE_WRITE);
     lock_release(swapLock);

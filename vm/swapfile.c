@@ -1,5 +1,6 @@
 #include <types.h>
 #include <vnode.h>
+#include <vfs.h>
 #include <vmstats.h>
 #include <uio.h>
 #include <synch.h>
@@ -14,7 +15,7 @@
 #define STRUCT_PAGE char[PAGE_SIZE];
 
 struct vnode swapfile;
-const int SWAP_PAGES = SWAP_SIZE / PAGE_SIZE;;
+int SWAP_PAGES = SWAP_SIZE / PAGE_SIZE;;
 struct lock swapLock;
 
 struct free_list {

@@ -7,6 +7,9 @@
 #include <machine/spl.h>
 #include <coremap.h>
 
+/// move the above to header file, ifndef block, blah blah blah
+////////////////////////////////////////////////
+
 struct cm core_map;
 
 void cm_bootstrap(){

@@ -5,30 +5,7 @@
 #include <vm.h>
 #include <swapfile.h>
 #include <machine/spl.h>
-
-struct cm_details {
-    int index;
-    int vpn;                //virtual page num
-    int kern                //indicate the page is a kernel page
-    struct thread* program; //program owning page
-    struct cm_details* next_free;
-   
-};
-
-struct cm {
-    int size;
-    int clock_pointer;
-    int lowest_frame;
-    struct cm_details* core_details;
-    struct cm_details* free_frame_list = NULL;   
-};
-
-void cm_bootstrap();
-int cm_request_frame();
-void cm_release_frame(int frame_number);
-
-/// move the above to header file, ifndef block, blah blah blah
-////////////////////////////////////////////////
+#include <coremap.h>
 
 struct cm core_map;
 

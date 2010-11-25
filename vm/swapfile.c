@@ -7,10 +7,11 @@
 #include <kern/unistd.h>
 #include <fs.h>
 
-#define SWAP_SIZE = 4194304; //4 * 1024 * 1024 (we have a 4MB page file)
+//4 * 1024 * 1024 (we have a 4MB page file)
+#define SWAP_SIZE = 4194304
 
-///TODO: Replace /* page type */ with the data type used for pages
-#define _page /* page type */;
+///TODO: data type for pages
+#define STRUCT_PAGE (void *)
 
 struct vnode swapfile;
 const int SWAP_PAGES = SWAP_SIZE / PAGE_SIZE;;
@@ -57,8 +58,8 @@ void swap_free_page(int n) {
     lock_release(swapLock);
 }
 
-void swap_write_page(_page *data, int n) {
-    mk_kuio(u, (void *) data, sizeof(_page), n * sizeof(_page), UIO_WRITE);
+void swap_write_page(STRUCT_PAGE *data, int n) {
+    mk_kuio(u, (void *) data, sizeof(STRUCT_PAGE), n * sizeof(STRUCT_PAGE), UIO_WRITE);
     VOP_WRITE(swapfile, u);
 }
 
@@ -66,8 +67,7 @@ void swap_write_page(_page *data, int n) {
 Writes a page to the swap file, and returns the index of the page in the swap file, which
 is used by swap_read
 */
-int swap_write(_page *data) {
-    //TODO
+int swap_write(STRUCT_PAGE *data) {
     int pagenum;
     lock_acquire(swapLock);
     if (freePages == NULL) {
@@ -86,9 +86,9 @@ Loads a page from swapspace into RAM at the physical address specified by phys_a
 */
 void swap_read(paddr_t phys_addr, int n) {
     ///I'm not sure that I'm doing this right (specifically the PADDR_TO_KVADDR doesn't seem right)
-    _page *page;
+    STRUCT_PAGE *page;
     lock_acquire(swapLock);
-    mk_kuio(u, (void *) PADDR_TO_KVADDR(phys_addr) , sizeof(_page), n * sizeof(_page), UIO_READ);
+    mk_kuio(u, (void *) PADDR_TO_KVADDR(phys_addr) , sizeof(STRUCT_PAGE), n * sizeof(STRUCT_PAGE), UIO_READ);
     VOP_READ(swapfile, u);
     swap_free_page(n);
     _vmstats_inc(VMSTAT_SWAP_FILE_READ);

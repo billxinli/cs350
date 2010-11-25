@@ -4,6 +4,7 @@
 #include <thread.h>
 #include <vm.h>
 #include <swapfile.h>
+#include <machine/spl.h>
 
 struct cm_details {
     int index;
@@ -32,6 +33,7 @@ void cm_release_frame(int frame_number);
 struct cm core_map;
 
 void cm_bootstrap(){
+    assert(curspl>0);
     assert(core_map == NULL); //we had better not bootstrap more than once!
     
     core_map.size = mips_ramsize() / PAGE_SIZE;
@@ -87,6 +89,10 @@ struct cm_details *free_list_pop() {
 }
 
 int cm_push_to_swap() {
+    /**
+    TODO: We need to make sure that the paging system knows that the page has been moved
+    into swapspace and is no longer in RAM
+    **/
     for (int i = core_map.lowest_frame; i < core_map.size; i++) {
         ///TODO: first pass of page replacement algorithm
     }
@@ -98,6 +104,9 @@ int cm_push_to_swap() {
 }
 
 int cm_request_frame(){
+    assert(curspl>0); ///Currently, interrupts must be disabled, but we should write this
+    ///so that we use locks (will probably have to add another member to cm_details indicating
+    ///if a frame is currently being moved to swap by another process
     struct cm_details *frame = free_list_pop();
     if (frame == NULL) {
         /*
@@ -112,6 +121,7 @@ int cm_request_frame(){
 }
 
 void cm_release_frame(int frame_number){
+    assert(curspl>0); ///see note in cm_request frame about interrupts
     assert(frame_number >= core_map.lowest_frame);
     free_list_add(&core_map.core_details[frame_number]);
 }

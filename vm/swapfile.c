@@ -18,7 +18,7 @@ const int SWAP_PAGES = SWAP_SIZE / PAGE_SIZE;;
 struct lock swapLock;
 
 struct free_list {
-    int index;
+    int swap_index_t;
     struct free_list *next;
 };
 
@@ -58,8 +58,8 @@ void swap_free_page(int n) {
     lock_release(swapLock);
 }
 
-void swap_write_page(STRUCT_PAGE *data, int n) {
-    mk_kuio(u, (void *) data, sizeof(STRUCT_PAGE), n * sizeof(STRUCT_PAGE), UIO_WRITE);
+void swap_write_page(STRUCT_PAGE *data, swap_index_t n) {
+    mk_kuio(u, (void *) data, sizeof(STRUCT_PAGE), (int) n * sizeof(STRUCT_PAGE), UIO_WRITE);
     VOP_WRITE(swapfile, u);
 }
 
@@ -67,8 +67,8 @@ void swap_write_page(STRUCT_PAGE *data, int n) {
 Writes a page to the swap file, and returns the index of the page in the swap file, which
 is used by swap_read
 */
-int swap_write(STRUCT_PAGE *data) {
-    int pagenum;
+swap_index_t swap_write(STRUCT_PAGE *data) {
+    swap_index_t pagenum;
     lock_acquire(swapLock);
     if (freePages == NULL) {
         panic("Out of memory!");
@@ -79,6 +79,7 @@ int swap_write(STRUCT_PAGE *data) {
     swap_write_page(data, pagenum);
     _vmstats_inc(VMSTAT_SWAP_FILE_WRITE);
     lock_release(swapLock);
+    return pagenum;
 }
 
 /*

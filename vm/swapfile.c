@@ -7,7 +7,8 @@
 
 #define SWAP_SIZE = 4194304; //4 * 1024 * 1024 (we have a 4MB page file)
 
-///TODO: Replace /* page type */ throughout the file with the data type used for pages
+///TODO: Replace /* page type */ with the data type used for pages
+#define _page /* page type */;
 
 struct vnode swapfile;
 const int SWAP_PAGES = SWAP_SIZE / PAGE_SIZE;;
@@ -18,8 +19,8 @@ struct free_list {
     struct free_list *next;
 };
 
-struct free_list *freePages; //The first free page
-struct free_list *pageList; //link to the beginning of the array containing the free pages (not necessarily page that is actually free)
+struct free_list *freePages; //The index of the first free page
+struct free_list *pageList; //link to the beginning of the array containing the indicies of free pages (not necessarily page that is actually free)
 
 void create_swap() {
     lock_create(swapLock, "Swapfile Lock");
@@ -32,8 +33,7 @@ void create_swap() {
         freePages[i].next = &freePages[i+1].next
     }
     freePages[SWAP_PAGES - 1].next = NULL: //fix the last element's next pointer
-    /** TODO: set up the swap file */
-    /** TODO: set up any structures needed for keeping track of used pages **/
+    ///TODO: Set up swapfile file (VOP_CREAT?? VOP_OPEN)
 }
 
 /*
@@ -51,8 +51,8 @@ void swap_free_page(int n) {
     lock_release(swapLock);
 }
 
-void swap_write_page(/* page type */ *data, int n) {
-    mk_kuio(u, (void *) data, sizeof(/* page type */), n * sizeof(/* page type */), UIO_WRITE);
+void swap_write_page(_page *data, int n) {
+    mk_kuio(u, (void *) data, sizeof(_page), n * sizeof(_page), UIO_WRITE);
     VOP_WRITE(swapfile, u);
 }
 
@@ -60,7 +60,7 @@ void swap_write_page(/* page type */ *data, int n) {
 Writes a page to the swap file, and returns the index of the page in the swap file, which
 is used by swap_read
 */
-int swap_write(/* page type */ *data) {
+int swap_write(_page *data) {
     //TODO
     int pagenum;
     lock_acquire(swapLock);
@@ -80,9 +80,9 @@ Loads a page from swapspace into RAM at the physical address specified by phys_a
 */
 void swap_read(paddr_t phys_addr, int n) {
     ///I'm not sure that I'm doing this right (specifically the PADDR_TO_KVADDR doesn't seem right)
-    /* page type */ *page;
+    _page *page;
     lock_acquire(swapLock);
-    mk_kuio(u, (void *) PADDR_TO_KVADDR(phys_addr) , sizeof(/* page type */), n * sizeof(/* page type */), UIO_READ);
+    mk_kuio(u, (void *) PADDR_TO_KVADDR(phys_addr) , sizeof(_page), n * sizeof(_page), UIO_READ);
     VOP_READ(swapfile, u);
     swap_free_page(n);
     _vmstats_inc(VMSTAT_SWAP_FILE_READ);

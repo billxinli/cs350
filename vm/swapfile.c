@@ -9,14 +9,15 @@
 #include <fs.h>
 
 //4 * 1024 * 1024 (we have a 4MB page file)
-#define SWAP_SIZE = 4194304
+#define SWAP_SIZE 4194304
 
 ///TODO: data type for pages
 #define STRUCT_PAGE char[PAGE_SIZE];
 
 struct vnode swapfile;
-int SWAP_PAGES = SWAP_SIZE / PAGE_SIZE;;
-struct lock swapLock;
+int SWAP_PAGES = SWAP_SIZE / PAGE_SIZE;
+
+struct lock *swapLock;
 
 struct free_list {
     int swap_index_t;
@@ -28,35 +29,36 @@ struct free_list *pageList; //link to the beginning of the array containing the 
 
 /*
 Creates a swapspace file for use by the operating system. May only be called once
-*/
+ */
 void create_swap() {
-    lock_create(swapLock, "Swapfile Lock");
+    swapLock = lock_create("Swapfile Lock");
     _vmstats_init();
-    paddr_t physical_address = ram_stealmem(((sizeof(free_list) * SWAP_PAGES) + PAGE_SIZE - 1) / PAGE_SIZE);
-    freePages = (free_list *) PADDR_TO_KVADDR(physical_address);
+    paddr_t physical_address = ram_stealmem(((sizeof (struct free_list) * SWAP_PAGES) + PAGE_SIZE - 1) / PAGE_SIZE);
+    freePages = (struct free_list *) PADDR_TO_KVADDR(physical_address);
     pageList = freePages;
-    for (int i = 0; i < SWAP_PAGES; i++) {
-        freePages[i].index = i;
-        freePages[i].next = &freePages[i+1].next
+    int i = 0;
+    for (i = 0; i < SWAP_PAGES; i++) {
+        freePages[i].swap_index_t = i;
+        freePages[i].next = &freePages[i + 1].next;
     }
-    freePages[SWAP_PAGES - 1].next = NULL: //fix the last element's next pointer
+    freePages[SWAP_PAGES - 1].next = NULL; //fix the last element's next pointer
     //I'm not 100% confident I'm doing this exactly right, but I think this works
     struct vnode *root;
-    vfs_lookup("/", root); 
-    VOP_CREAT(root , "SWAPFILE", O_RDWR & O_CREAT, &swapfile);
+    vfs_lookup("/", root);
+    VOP_CREAT(root, "SWAPFILE", O_RDWR & O_CREAT, &swapfile);
     VOP_OPEN(swapfile, O_RDWR);
 }
 
 /*
 Checks to see if the swap file is full. Returns 1 if all pages are used and 0 otherwise
-*/
+ */
 int swap_full() {
     return (freePages == NULL);
 }
 
 /*
 Frees a page in the swap file for reuse (but does not zero it)
-*/
+ */
 void swap_free_page(swap_index_t n, int zero) {
     lock_acquire(swapLock);
     pageList[(int) n].next = freePages;
@@ -65,14 +67,14 @@ void swap_free_page(swap_index_t n, int zero) {
 }
 
 void swap_write_page(STRUCT_PAGE *data, swap_index_t n) {
-    mk_kuio(u, (void *) data, sizeof(STRUCT_PAGE), (int) n * sizeof(STRUCT_PAGE), UIO_WRITE);
+    mk_kuio(u, (void *) data, sizeof (STRUCT_PAGE), (int) n * sizeof (STRUCT_PAGE), UIO_WRITE);
     VOP_WRITE(swapfile, u);
 }
 
 /*
 Writes data to a free page in the swapfile and returns the index of the page
 in the swapfile
-*/
+ */
 swap_index_t swap_write(STRUCT_PAGE *data) {
     swap_index_t pagenum;
     lock_acquire(swapLock);
@@ -90,12 +92,12 @@ swap_index_t swap_write(STRUCT_PAGE *data) {
 
 /*
 Reads the page at index n in the swapfile into memory at physical address phys_addr
-*/
+ */
 void swap_read(paddr_t phys_addr, swap_index_t n) {
     ///I'm not sure that I'm doing this right (specifically the PADDR_TO_KVADDR doesn't seem right)
     STRUCT_PAGE *page;
     lock_acquire(swapLock);
-    mk_kuio(u, (void *) PADDR_TO_KVADDR(phys_addr) , sizeof(STRUCT_PAGE), (int) n * sizeof(STRUCT_PAGE), UIO_READ);
+    mk_kuio(u, (void *) PADDR_TO_KVADDR(phys_addr), sizeof (STRUCT_PAGE), (int) n * sizeof (STRUCT_PAGE), UIO_READ);
     VOP_READ(swapfile, u);
     swap_free_page(n);
     _vmstats_inc(VMSTAT_SWAP_FILE_READ);

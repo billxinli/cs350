@@ -24,5 +24,5 @@ struct page_table{
 struct page_table* pt_init();
 
 #endif
-
+#endif
 

@@ -1,13 +1,13 @@
 #include "opt-A3.h"
 #if OPT_A3
 
-#ifndef __SWAP_FILE_H__
-#define __SWAP_FILE_H__
+#ifndef __SWAPFILE_H__
+#define __SWAPFILE_H__
 
 #include <types.h>
 #include <vm.h>
 
-typedef int swap_index_t;
+typedef  int swap_index_t;
 
 /*
 Creates a swapspace file for use by the operating system. May only be called once
@@ -38,3 +38,4 @@ void swap_read(paddr_t phys_addr, swap_index_t n);
 #endif
 
 #endif
+

@@ -16,11 +16,16 @@
 #include "opt-synchprobs.h"
 
 #include "opt-A2.h"
+#include "opt-A2.h"
 
 #if OPT_A2
 #include <pid.h>
 #include <child_table.h>
 #endif
+
+#if OPT_A3
+#endif
+
 /* States a thread can be in. */
 typedef enum {
 	S_RUN,
@@ -72,11 +77,13 @@ thread_create(const char *name)
 	  thread->parent = NULL;
 	  thread->children = NULL;
 	  thread->exit_status = -1; //will be changed if _exit() is called
+          thread->ft = ft_create();
 	#endif
-	
+        #if OPT_A3
+        #endif
+
 	// If you add things to the thread structure, be sure to initialize
 	// them here.
-        thread->ft = ft_create();
 	return thread;
 }
 

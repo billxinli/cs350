@@ -20,7 +20,7 @@ int SWAP_PAGES = SWAP_SIZE / PAGE_SIZE;
 struct lock *swapLock;
 
 struct free_list {
-    int swap_index_t;
+    swap_index_t index;
     struct free_list *next;
 };
 
@@ -38,7 +38,7 @@ void create_swap() {
     pageList = freePages;
     int i = 0;
     for (i = 0; i < SWAP_PAGES; i++) {
-        freePages[i].swap_index_t = i;
+        freePages[i].index = i;
         freePages[i].next = &freePages[i + 1].next;
     }
     freePages[SWAP_PAGES - 1].next = NULL; //fix the last element's next pointer

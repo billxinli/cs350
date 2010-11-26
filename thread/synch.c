@@ -11,6 +11,11 @@
 #include <machine/spl.h>
 
 #include "opt-A1.h"
+#include "opt-A3.h"
+
+#if "OPT_A3"
+#include <vm.h>
+#endif
 
 ////////////////////////////////////////////////////////////
 //
@@ -123,6 +128,28 @@ lock_create(const char *name)
 	
 	return lock;
 }
+
+#if OPT_A3
+struct lock *lock_create_nokmalloc(const char *name) {
+	struct lock *lock;
+
+	lock = (struct lock *) PADDR_TO_KVADDR(ram_stealmem((sizeof (struct lock) + PAGE_SIZE - 1) / PAGE_SIZE));
+	if (lock == NULL) {
+		return NULL;
+	}
+
+	lock->name = kstrdup(name);
+	if (lock->name == NULL) {
+		kfree(lock);
+		return NULL;
+	}
+	
+	lock->owner = NULL;
+	lock->acquired = 0;
+	
+	return lock;
+}
+#endif
 
 void
 lock_destroy(struct lock *lock)

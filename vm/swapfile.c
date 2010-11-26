@@ -1,3 +1,7 @@
+#include "opt-A3.h"
+
+#if OPT_A3
+
 #include <types.h>
 #include <vnode.h>
 #include <vfs.h>
@@ -31,7 +35,7 @@ struct free_list *pageList; //link to the beginning of the array containing the 
 Creates a swapspace file for use by the operating system. May only be called once
  */
 void create_swap() {
-    swapLock = lock_create("Swapfile Lock");
+    swapLock = lock_create_nokmalloc("Swapfile Lock");
     _vmstats_init();
     paddr_t physical_address = ram_stealmem(((sizeof (struct free_list) * SWAP_PAGES) + PAGE_SIZE - 1) / PAGE_SIZE);
     freePages = (struct free_list *) PADDR_TO_KVADDR(physical_address);
@@ -103,3 +107,5 @@ void swap_read(paddr_t phys_addr, swap_index_t n) {
     _vmstats_inc(VMSTAT_SWAP_FILE_READ);
     lock_release(swapLock);
 }
+
+#endif

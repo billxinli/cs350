@@ -77,6 +77,7 @@ boot(void) {
 
     ram_bootstrap();
 #if OPT_A3
+    tlb_bootstrap();
     cm_bootstrap();
     swap_bootstrap();
 #endif
@@ -84,9 +85,7 @@ boot(void) {
     thread_bootstrap();
     vfs_bootstrap();
     dev_bootstrap();
-#if OPT_A3
-    tlb_bootstrap();
-#else
+#if !OPT_A3
     vm_bootstrap();
 #endif
     kprintf_bootstrap();

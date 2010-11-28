@@ -19,13 +19,7 @@ struct tlbfreelist tlb_free_list;
 
 void tlb_bootstrap(void) {
     //tlb_next_free = 0;
-
-
-    paddr_t physical_address = ram_stealmem(((sizeof (struct tlbfreenode) * NUM_TLB) + PAGE_SIZE - 1) / PAGE_SIZE);
-    /* if (physical_address == NULL) {
-         panic("NO MEMORY FOR TLB FREE LIST");
-     }*/
-    tlb_free_list.tlbfreenodes = (struct tlbfreenode*) PADDR_TO_KVADDR(physical_address);
+    tlb_free_list.tlbfreenodes = (struct tlbfreenode *) ralloc(sizeof(struct tlbfreenode) * NUM_TLB);
     tlb_init_free_list();
 }
 

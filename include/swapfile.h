@@ -26,9 +26,9 @@ void swap_free_page(swap_index_t n);
 
 /*
 Writes data to a free page in the swapfile and returns the index of the page
-in the swapfile
+in the swapfile (pass the physical frame number)
 */
-swap_index_t swap_write(void *data);
+swap_index_t swap_write(int phys_frame_num);
 
 /*
 Reads the page at index n in the swapfile into memory at physical address phys_addr

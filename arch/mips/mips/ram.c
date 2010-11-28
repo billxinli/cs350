@@ -97,7 +97,7 @@ This could be made better to not waste space, but this is only called a couple o
 times, so I'm not going to worry about it too much
 */
 void *ralloc(int size) {
-    paddr_t phys_addr = ram_stealmem(((size * SWAP_PAGES) + PAGE_SIZE - 1) / PAGE_SIZE);
+    paddr_t phys_addr = ram_stealmem((size + PAGE_SIZE - 1) / PAGE_SIZE);
     if (phys_addr == 0) {
         return NULL;
     } else {

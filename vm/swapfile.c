@@ -36,7 +36,7 @@ Creates a swapspace file for use by the operating system. May only be called onc
 void create_swap() {
     swapLock = lock_create_nokmalloc("Swapfile Lock");
     _vmstats_init();
-    freePages = (struct free_list *) ralloc((int) sizeof(struct free_list));
+    freePages = (struct free_list *) ralloc((int) sizeof(struct free_list) * SWAP_PAGES);
     pageList = freePages;
     int i = 0;
     for (i = 0; i < SWAP_PAGES; i++) {

@@ -7,8 +7,6 @@
 #include <kern/limits.h>
 #include <machine/spl.h>
 #include <lib.h>
-#include <array.h>
-#include <queue.h>
 #include <vfs.h>
 #include <vnode.h>
 #include <thread.h>

@@ -40,6 +40,7 @@ void swap_bootstrap() {
     freePages = (struct free_list *) ralloc((int) sizeof(struct free_list) * SWAP_PAGES);
     pageList = freePages;
     int i = 0;
+    //initialize the free pages list
     for (i = 0; i < SWAP_PAGES; i++) {
         freePages[i].index = i;
         freePages[i].next = &freePages[i + 1];
@@ -65,6 +66,7 @@ Frees a page in the swap file for reuse (but does not zero it)
 void swap_free_page(swap_index_t n) {
     assert(curspl == 0); //interrupts should be on
     lock_acquire(swapLock);
+    //add the page to the front of the free pages list
     pageList[(int) n].next = freePages;
     freePages = &pageList[(int) n];
     lock_release(swapLock);

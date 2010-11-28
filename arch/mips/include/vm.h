@@ -72,6 +72,9 @@ void ram_bootstrap(void);
 paddr_t ram_stealmem(unsigned long npages);
 void ram_getsize(paddr_t *lo, paddr_t *hi);
 #if OPT_A3
+/* Jacks some RAM for use in bootstrapping before the virtual memory management
+system is setup (pre-kmalloc)
+*/
 void *ralloc(int size);
 #endif
 

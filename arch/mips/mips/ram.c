@@ -93,7 +93,8 @@ ram_getsize(u_int32_t *lo, u_int32_t *hi)
 
 #if OPT_A3
 /*
-This could be made better to not waste space, but this is only called a couple of
+Used to allocate memory before the virtual memory management is setup.
+This could be made better to not waste space, but this is only called a few
 times, so I'm not going to worry about it too much
 */
 void *ralloc(int size) {

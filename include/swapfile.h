@@ -31,9 +31,10 @@ in the swapfile (pass the physical frame number)
 swap_index_t swap_write(int phys_frame_num);
 
 /*
-Reads the page at index n in the swapfile into memory at physical address phys_addr
+Reads the page at index n in the swapfile into memory at the specified physical
+frame
 */
-void swap_read(paddr_t phys_addr, swap_index_t n);
+void swap_read(int phys_frame_num, swap_index_t n);
 
 #endif
 

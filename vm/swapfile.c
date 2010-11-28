@@ -95,13 +95,14 @@ swap_index_t swap_write(int phys_frame_num) {
 }
 
 /*
-Reads the page at index n in the swapfile into memory at physical address phys_addr
- */
-void swap_read(paddr_t phys_addr, swap_index_t n) {
-    ///I'm not sure that I'm doing this right (specifically the PADDR_TO_KVADDR doesn't seem right)
+Reads the page at index n in the swapfile into memory at the specified physical
+frame
+*/
+void swap_read(int phys_frame_num, swap_index_t n) {
     lock_acquire(swapLock);
+    void *write_addr = PADDR_TO_KVADDR(phys_frame_num * PAGE_SIZE);
     struct uio *u = kmalloc(sizeof (struct uio));
-    mk_kuio(u, (void *) PADDR_TO_KVADDR(phys_addr), PAGE_SIZE, (int) n * PAGE_SIZE, UIO_READ);
+    mk_kuio(u, write_addr, PAGE_SIZE, (int) n * PAGE_SIZE, UIO_READ);
     VOP_READ(swapfile, u);
     swap_free_page(n);
     _vmstats_inc(VMSTAT_SWAP_FILE_READ);

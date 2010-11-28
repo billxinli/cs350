@@ -76,14 +76,16 @@ boot(void) {
     kprintf("\n");
 
     ram_bootstrap();
+#if OPT_A3
+    cm_bootstrap();
+    swap_bootstrap();
+#endif
     scheduler_bootstrap();
     thread_bootstrap();
     vfs_bootstrap();
     dev_bootstrap();
 #if OPT_A3
     tlb_bootstrap();
-    cm_bootstrap();
-    swap_bootstrap();
 #else
     vm_bootstrap();
 #endif

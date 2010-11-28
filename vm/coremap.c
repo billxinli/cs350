@@ -16,15 +16,12 @@
 #include <swapfile.h>
 #include <coremap.h>
 
-/// move the above to header file, ifndef block, blah blah blah
-////////////////////////////////////////////////
-
 struct cm core_map;
 
 void cm_bootstrap() {
     assert(curspl > 0);
-    assert(core_map.init == 0); //we had better not bootstrap more than once!
-    core_map.init = 1;
+    assert(&core_map == NULL); //we had better not bootstrap more than once!
+
     create_swap(); //might want to remove this from function and just call it before cm_bootstrap
 
     core_map.size = mips_ramsize() / PAGE_SIZE;

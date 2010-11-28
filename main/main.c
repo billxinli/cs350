@@ -18,7 +18,9 @@
 #include <version.h>
 #include "opt-A0.h"
 #include "opt-A3.h"
-
+#if OPT_A3
+#include <vm_tlb.h>
+#endif
 /*
  * These two pieces of data are maintained by the makefiles and build system.
  * buildconfig is the name of the config file the kernel was configured with.

@@ -1,3 +1,5 @@
+#include "opt-A3.h"
+
 #include <types.h>
 #include <lib.h>
 #include <vm.h>
@@ -88,3 +90,18 @@ ram_getsize(u_int32_t *lo, u_int32_t *hi)
 	*hi = lastpaddr;
 	firstpaddr = lastpaddr = 0;
 }
+
+#if OPT_A3
+/*
+This could be made better to not waste space, but this is only called a couple of
+times, so I'm not going to worry about it too much
+*/
+void *ralloc(int size) {
+    paddr_t phys_addr = ram_stealmem(((size * SWAP_PAGES) + PAGE_SIZE - 1) / PAGE_SIZE);
+    if (phys_addr == 0) {
+        return NULL;
+    } else {
+        return (void *) PADDR_TO_KVADDR(phys_addr);
+    }
+}
+#endif

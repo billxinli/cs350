@@ -1,3 +1,5 @@
+#include "opt-A3.h"
+
 #ifndef _MIPS_VM_H_
 #define _MIPS_VM_H_
 
@@ -69,6 +71,9 @@
 void ram_bootstrap(void);
 paddr_t ram_stealmem(unsigned long npages);
 void ram_getsize(paddr_t *lo, paddr_t *hi);
+#if OPT_A3
+void *ralloc(int size);
+#endif
 
 /*
  * The ELF executable type for this platform.

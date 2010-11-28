@@ -24,11 +24,7 @@ void cm_bootstrap() {
 
     core_map.size = mips_ramsize() / PAGE_SIZE;
 
-    paddr_t physical_address = ram_stealmem(((sizeof (struct cm_details) * core_map.size) + PAGE_SIZE - 1) / PAGE_SIZE);
-    if (physical_address == NULL) {
-        panic("NO MEMORY FOR CORE MAP");
-    }
-    core_map.core_details = (struct cm_details*) PADDR_TO_KVADDR(physical_address);
+    core_map.core_details = (struct cm_details*) ralloc(sizeof(struct cm_details) * core_map.size);
 
     paddr_t low;
     paddr_t high;

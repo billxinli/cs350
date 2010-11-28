@@ -99,7 +99,7 @@ times, so I'm not going to worry about it too much
 void *ralloc(int size) {
     paddr_t phys_addr = ram_stealmem((size + PAGE_SIZE - 1) / PAGE_SIZE);
     if (phys_addr == 0) {
-        return NULL;
+        panic("Out of memory before VM is initialized. Wat.");
     } else {
         return (void *) PADDR_TO_KVADDR(phys_addr);
     }

@@ -402,11 +402,11 @@ file      userprog/fork.c
 #
 
 optofffile dumbvm   vm/addrspace.c
-file	vm/coremap.c
-file	vm/pt.c
-file	vm/segments.c
-file	vm/vm_tlb.c
-file	vm/swapfile.c
+#file	vm/coremap.c
+#file	vm/pt.c
+#file	vm/segments.c
+#file	vm/vm_tlb.c
+#file	vm/swapfile.c
 
 #
 # Network

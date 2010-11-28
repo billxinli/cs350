@@ -13,7 +13,7 @@
 #include "opt-A1.h"
 #include "opt-A3.h"
 
-#if "OPT_A3"
+#if OPT_A3
 #include <vm.h>
 #endif
 

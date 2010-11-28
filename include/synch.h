@@ -66,7 +66,7 @@ void         lock_release(struct lock *);
 int          lock_do_i_hold(struct lock *);
 void         lock_destroy(struct lock *);
 #if OPT_A3
-struct lock *lock_create_nokmalloc(const char *name)
+struct lock *lock_create_nokmalloc(const char *name);
 #endif
 
 

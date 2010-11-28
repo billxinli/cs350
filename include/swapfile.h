@@ -12,7 +12,7 @@ typedef  int swap_index_t;
 /*
 Creates a swapspace file for use by the operating system. May only be called once
 */
-void create_swap();
+void swap_bootstrap();
 
 /*
 Checks to see if the swap file is full. Returns 1 if all pages are used and 0 otherwise

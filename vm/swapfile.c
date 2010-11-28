@@ -33,7 +33,7 @@ struct free_list *pageList; //link to the beginning of the array containing the 
 /*
 Creates a swapspace file for use by the operating system. May only be called once
  */
-void create_swap() {
+void swap_bootstrap() {
     swapLock = lock_create_nokmalloc("Swapfile Lock");
     _vmstats_init();
     freePages = (struct free_list *) ralloc((int) sizeof(struct free_list) * SWAP_PAGES);

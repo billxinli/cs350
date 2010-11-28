@@ -6,6 +6,7 @@
 #include <addrspace.h>
 #include <vm.h>
 #include <vmstats.h>
+#include <vm_tlb.h>
 #include <machine/spl.h>
 #include <machine/tlb.h>
 
@@ -78,7 +79,7 @@ int vm_fault(int faulttype, vaddr_t faultaddress) {
             /* We always create pages read-write, so we can't get this */
             panic("dumbvm: got VM_FAULT_READONLY\n");
         case VM_FAULT_READ:
-            
+
         case VM_FAULT_WRITE:
             break;
         default:
@@ -130,7 +131,7 @@ int vm_fault(int faulttype, vaddr_t faultaddress) {
 
     /* make sure it's page-aligned */
     assert((paddr & PAGE_FRAME) == paddr);
-
+/*
     for (i = 0; i < NUM_TLB; i++) {
         TLB_Read(&ehi, &elo, i);
         if (elo & TLBLO_VALID) {
@@ -142,7 +143,8 @@ int vm_fault(int faulttype, vaddr_t faultaddress) {
         TLB_Write(ehi, elo, i);
         splx(spl);
         return 0;
-    }
+    }*/
+    tlb_add_entry(faultaddress, paddr, 1);
 
     kprintf("dumbvm: Ran out of TLB entries - cannot handle page fault\n");
     splx(spl);
@@ -203,17 +205,9 @@ void as_destroy(struct addrspace *as) {
 }
 
 void as_activate(struct addrspace *as) {
-    int i, spl;
-
     (void) as;
+    tlb_context_switch();
 
-    spl = splhigh();
-
-    for (i = 0; i < NUM_TLB; i++) {
-        TLB_Write(TLBHI_INVALID(i), TLBLO_INVALID(), i);
-    }
-
-    splx(spl);
 }
 
 /*

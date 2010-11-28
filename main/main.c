@@ -79,6 +79,7 @@ boot(void)
 	thread_bootstrap();
 	vfs_bootstrap();
 	dev_bootstrap();
+        tlb_bootstrap();
 	vm_bootstrap();
 	kprintf_bootstrap();
 

@@ -5,6 +5,7 @@
 #include <curthread.h>
 #include <addrspace.h>
 #include <vm.h>
+#include <vmstats.h>
 #include <machine/spl.h>
 #include <machine/tlb.h>
 
@@ -77,6 +78,7 @@ int vm_fault(int faulttype, vaddr_t faultaddress) {
             /* We always create pages read-write, so we can't get this */
             panic("dumbvm: got VM_FAULT_READONLY\n");
         case VM_FAULT_READ:
+            /* 
         case VM_FAULT_WRITE:
             break;
         default:

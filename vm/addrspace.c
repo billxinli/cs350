@@ -9,30 +9,27 @@
 #include <vm_tlb.h>
 #include <machine/spl.h>
 #include <machine/tlb.h>
+#include "opt-A3.h"
 
-/*
- * Note! If OPT_DUMBVM is set, as is the case until you start the VM
- * assignment, this file is not compiled or linked or in any way
- * used. The cheesy hack versions in dumbvm.c are used instead.
- */
+#if OPT_A3
+#include <thread.h>
+#include <curthread.h>
+#include <machine/spl.h>
+#include <machine/tlb.h>
+#include <vm_tlb.h>
+
 
 /* under dumbvm, always have 48k of user stack */
 #define DUMBVM_STACKPAGES    12
 
-void vm_bootstrap(void) {
-    kprintf("===============================================================================\n");
-    kprintf("HOLY SHIT HOLT SHIT HOLY SHIT HOLT SHIT HOLY SHIT HOLT SHIT HOLY SHIT HOLT SHIT\n");
-    kprintf("HOLY SHIT HOLT SHIT HOLY SHIT HOLT SHIT HOLY SHIT HOLT SHIT HOLY SHIT HOLT SHIT\n");
-    kprintf("===============================================================================\n");
-    kprintf("The VM is a dumb vm implementation. We need to fcix it.\n");
-    kprintf("===============================================================================\n");
-    kprintf("HOLY SHIT HOLT SHIT HOLY SHIT HOLT SHIT HOLY SHIT HOLT SHIT HOLY SHIT HOLT SHIT\n");
-    kprintf("HOLY SHIT HOLT SHIT HOLY SHIT HOLT SHIT HOLY SHIT HOLT SHIT HOLY SHIT HOLT SHIT\n");
-    kprintf("===============================================================================\n");
+void
+vm_bootstrap(void) {
     /* Do nothing. */
 }
 
-static paddr_t getppages(unsigned long npages) {
+static
+paddr_t
+getppages(unsigned long npages) {
     int spl;
     paddr_t addr;
 
@@ -45,7 +42,8 @@ static paddr_t getppages(unsigned long npages) {
 }
 
 /* Allocate/free some kernel-space virtual pages */
-vaddr_t alloc_kpages(int npages) {
+vaddr_t
+alloc_kpages(int npages) {
     paddr_t pa;
     pa = getppages(npages);
     if (pa == 0) {
@@ -54,13 +52,15 @@ vaddr_t alloc_kpages(int npages) {
     return PADDR_TO_KVADDR(pa);
 }
 
-void free_kpages(vaddr_t addr) {
+void
+free_kpages(vaddr_t addr) {
     /* nothing */
 
     (void) addr;
 }
 
-int vm_fault(int faulttype, vaddr_t faultaddress) {
+int
+vm_fault(int faulttype, vaddr_t faultaddress) {
     vaddr_t vbase1, vtop1, vbase2, vtop2, stackbase, stacktop;
     paddr_t paddr;
     int i;
@@ -79,7 +79,6 @@ int vm_fault(int faulttype, vaddr_t faultaddress) {
             /* We always create pages read-write, so we can't get this */
             panic("dumbvm: got VM_FAULT_READONLY\n");
         case VM_FAULT_READ:
-
         case VM_FAULT_WRITE:
             break;
         default:
@@ -131,27 +130,15 @@ int vm_fault(int faulttype, vaddr_t faultaddress) {
 
     /* make sure it's page-aligned */
     assert((paddr & PAGE_FRAME) == paddr);
-/*
-    for (i = 0; i < NUM_TLB; i++) {
-        TLB_Read(&ehi, &elo, i);
-        if (elo & TLBLO_VALID) {
-            continue;
-        }
-        ehi = faultaddress;
-        elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
-        DEBUG(DB_VM, "dumbvm: 0x%x -> 0x%x\n", faultaddress, paddr);
-        TLB_Write(ehi, elo, i);
-        splx(spl);
-        return 0;
-    }*/
-    tlb_add_entry(faultaddress, paddr, 1);
 
-    kprintf("dumbvm: Ran out of TLB entries - cannot handle page fault\n");
+
+    tlb_add_entry(faultaddress, paddr, 1);
     splx(spl);
-    return EFAULT;
+    return 0;
 }
 
-struct addrspace *as_create(void) {
+struct addrspace *
+as_create(void) {
     struct addrspace *as = kmalloc(sizeof (struct addrspace));
     if (as == NULL) {
         return NULL;
@@ -168,59 +155,20 @@ struct addrspace *as_create(void) {
     return as;
 }
 
-int as_copy(struct addrspace *old, struct addrspace **ret) {
-    struct addrspace *new;
-
-    new = as_create();
-    if (new == NULL) {
-        return ENOMEM;
-    }
-
-    new->as_vbase1 = old->as_vbase1;
-    new->as_npages1 = old->as_npages1;
-    new->as_vbase2 = old->as_vbase2;
-    new->as_npages2 = old->as_npages2;
-
-    if (as_prepare_load(new)) {
-        as_destroy(new);
-        return ENOMEM;
-    }
-
-    assert(new->as_pbase1 != 0);
-    assert(new->as_pbase2 != 0);
-    assert(new->as_stackpbase != 0);
-
-    memmove((void *) PADDR_TO_KVADDR(new->as_pbase1), (const void *) PADDR_TO_KVADDR(old->as_pbase1), old->as_npages1 * PAGE_SIZE);
-
-    memmove((void *) PADDR_TO_KVADDR(new->as_pbase2), (const void *) PADDR_TO_KVADDR(old->as_pbase2), old->as_npages2 * PAGE_SIZE);
-
-    memmove((void *) PADDR_TO_KVADDR(new->as_stackpbase), (const void *) PADDR_TO_KVADDR(old->as_stackpbase), DUMBVM_STACKPAGES * PAGE_SIZE);
-
-    *ret = new;
-    return 0;
-}
-
-void as_destroy(struct addrspace *as) {
+void
+as_destroy(struct addrspace *as) {
     kfree(as);
 }
 
-void as_activate(struct addrspace *as) {
-    (void) as;
+void
+as_activate(struct addrspace *as) {
     tlb_context_switch();
-
+    (void) as;
 }
 
-/*
- * Set up a segment at virtual address VADDR of size MEMSIZE. The
- * segment in memory extends from VADDR up to (but not including)
- * VADDR+MEMSIZE.
- *
- * The READABLE, WRITEABLE, and EXECUTABLE flags are set if read,
- * write, or execute permission should be set on the segment. At the
- * moment, these are ignored. When you write the VM system, you may
- * want to implement them.
- */
-int as_define_region(struct addrspace *as, vaddr_t vaddr, size_t sz, int readable, int writeable, int executable) {
+int
+as_define_region(struct addrspace *as, vaddr_t vaddr, size_t sz,
+        int readable, int writeable, int executable) {
     size_t npages;
 
     /* Align the region. First, the base... */
@@ -256,7 +204,8 @@ int as_define_region(struct addrspace *as, vaddr_t vaddr, size_t sz, int readabl
     return EUNIMP;
 }
 
-int as_prepare_load(struct addrspace *as) {
+int
+as_prepare_load(struct addrspace *as) {
     assert(as->as_pbase1 == 0);
     assert(as->as_pbase2 == 0);
     assert(as->as_stackpbase == 0);
@@ -279,19 +228,58 @@ int as_prepare_load(struct addrspace *as) {
     return 0;
 }
 
-int as_complete_load(struct addrspace *as) {
+int
+as_complete_load(struct addrspace *as) {
     (void) as;
     return 0;
 }
 
-int as_define_stack(struct addrspace *as, vaddr_t *stackptr) {
+int
+as_define_stack(struct addrspace *as, vaddr_t *stackptr) {
     assert(as->as_stackpbase != 0);
 
     *stackptr = USERSTACK;
     return 0;
 }
 
-#if OPT_A2
+int
+as_copy(struct addrspace *old, struct addrspace **ret) {
+    struct addrspace *new;
+
+    new = as_create();
+    if (new == NULL) {
+        return ENOMEM;
+    }
+
+    new->as_vbase1 = old->as_vbase1;
+    new->as_npages1 = old->as_npages1;
+    new->as_vbase2 = old->as_vbase2;
+    new->as_npages2 = old->as_npages2;
+
+    if (as_prepare_load(new)) {
+        as_destroy(new);
+        return ENOMEM;
+    }
+
+    assert(new->as_pbase1 != 0);
+    assert(new->as_pbase2 != 0);
+    assert(new->as_stackpbase != 0);
+
+    memmove((void *) PADDR_TO_KVADDR(new->as_pbase1),
+            (const void *) PADDR_TO_KVADDR(old->as_pbase1),
+            old->as_npages1 * PAGE_SIZE);
+
+    memmove((void *) PADDR_TO_KVADDR(new->as_pbase2),
+            (const void *) PADDR_TO_KVADDR(old->as_pbase2),
+            old->as_npages2 * PAGE_SIZE);
+
+    memmove((void *) PADDR_TO_KVADDR(new->as_stackpbase),
+            (const void *) PADDR_TO_KVADDR(old->as_stackpbase),
+            DUMBVM_STACKPAGES * PAGE_SIZE);
+
+    *ret = new;
+    return 0;
+}
 
 int as_valid_read_addr(struct addrspace *as, vaddr_t *check_addr) {
     if (check_addr < (vaddr_t*) USERTOP) {
@@ -319,4 +307,152 @@ int as_valid_write_addr(struct addrspace *as, vaddr_t *check_addr) {
     }
     return 0;
 }
+
+
+#else
+
+/*
+ * Note! If OPT_DUMBVM is set, as is the case until you start the VM
+ * assignment, this file is not compiled or linked or in any way
+ * used. The cheesy hack versions in dumbvm.c are used instead.
+ */
+
+struct addrspace *
+as_create(void) {
+    struct addrspace *as = kmalloc(sizeof (struct addrspace));
+    if (as == NULL) {
+        return NULL;
+    }
+
+    /*
+     * Initialize as needed.
+     */
+
+    return as;
+}
+
+int
+as_copy(struct addrspace *old, struct addrspace **ret) {
+    struct addrspace *newas;
+
+    newas = as_create();
+    if (newas == NULL) {
+        return ENOMEM;
+    }
+
+    /*
+     * Write this.
+     */
+
+    (void) old;
+
+    *ret = newas;
+    return 0;
+}
+
+void
+as_destroy(struct addrspace *as) {
+    /*
+     * Clean up as needed.
+     */
+
+    kfree(as);
+}
+
+void
+as_activate(struct addrspace *as) {
+    /*
+     * Write this.
+     */
+
+    (void) as; // suppress warning until code gets written
+}
+
+void as_destroy(struct addrspace *as) {
+    kfree(as);
+}
+
+void as_activate(struct addrspace *as) {
+    (void) as;
+    tlb_context_switch();
+
+}
+
+/*
+ * Set up a segment at virtual address VADDR of size MEMSIZE. The
+ * segment in memory extends from VADDR up to (but not including)
+ * VADDR+MEMSIZE.
+ *
+ * The READABLE, WRITEABLE, and EXECUTABLE flags are set if read,
+ * write, or execute permission should be set on the segment. At the
+ * moment, these are ignored. When you write the VM system, you may
+ * want to implement them.
+ */
+int
+as_define_region(struct addrspace *as, vaddr_t vaddr, size_t sz,
+        int readable, int writeable, int executable) {
+    /*
+     * Write this.
+     */
+
+    (void) as;
+    (void) vaddr;
+    (void) sz;
+    (void) readable;
+    (void) writeable;
+    (void) executable;
+    return EUNIMP;
+}
+
+int
+as_prepare_load(struct addrspace *as) {
+    /*
+     * Write this.
+     */
+
+    (void) as;
+    return 0;
+}
+
+int
+as_complete_load(struct addrspace *as) {
+    /*
+     * Write this.
+     */
+
+    (void) as;
+    return 0;
+}
+
+int
+as_define_stack(struct addrspace *as, vaddr_t *stackptr) {
+    /*
+     * Write this.
+     */
+
+    (void) as;
+
+    /* Initial user-level stack pointer */
+    *stackptr = USERSTACK;
+
+    return 0;
+}
+
+#if OPT_A2
+
+int as_valid_read_addr(struct addrspace *as, vaddr_t *check_addr) {
+    (void) as;
+    (void) check_addr;
+    /* write this */
+    return 0;
+}
+
+int as_valid_write_addr(struct addrspace *as, vaddr_t *check_addr) {
+    (void) as;
+    (void) check_addr;
+    /* write this */
+    return 0;
+}
 #endif /* OPT_A2 */
+
+#endif /* OPT_A3 */

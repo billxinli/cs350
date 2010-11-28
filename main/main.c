@@ -82,8 +82,11 @@ boot(void) {
     dev_bootstrap();
 #if OPT_A3
     tlb_bootstrap();
-#endif
+    cm_bootstrap();
+    swap_bootstrap();
+#else
     vm_bootstrap();
+#endif
     kprintf_bootstrap();
 
     /* Default bootfs - but ignore failure, in case emu0 doesn't exist */

@@ -28,7 +28,7 @@ void swap_free_page(swap_index_t n);
 Writes data to a free page in the swapfile and returns the index of the page
 in the swapfile
 */
-swap_index_t swap_write(char[PAGE_SIZE]);
+swap_index_t swap_write(void *data);
 
 /*
 Reads the page at index n in the swapfile into memory at physical address phys_addr

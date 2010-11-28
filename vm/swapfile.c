@@ -13,6 +13,7 @@
 #include <fs.h>
 #include <swapfile.h>
 #include <lib.h>
+#include <machine/spl.h>
 
 //4 * 1024 * 1024 (we have a 4MB page file)
 #define SWAP_SIZE 4194304
@@ -62,6 +63,7 @@ int swap_full() {
 Frees a page in the swap file for reuse (but does not zero it)
  */
 void swap_free_page(swap_index_t n) {
+    assert(curspl == 0); //interrupts should be on
     lock_acquire(swapLock);
     pageList[(int) n].next = freePages;
     freePages = &pageList[(int) n];
@@ -80,6 +82,7 @@ in the swapfile (pass the physical frame number)
  */
 swap_index_t swap_write(int phys_frame_num) {
     swap_index_t pagenum;
+    assert(curspl == 0); //interrupts should be on
     lock_acquire(swapLock);
     void *data = (void *) PADDR_TO_KVADDR(phys_frame_num * PAGE_SIZE);
     if (freePages == NULL) {
@@ -99,6 +102,7 @@ Reads the page at index n in the swapfile into memory at the specified physical
 frame
 */
 void swap_read(int phys_frame_num, swap_index_t n) {
+    assert(curspl == 0); //interrupts should be on
     lock_acquire(swapLock);
     void *write_addr = PADDR_TO_KVADDR(phys_frame_num * PAGE_SIZE);
     struct uio *u = kmalloc(sizeof (struct uio));

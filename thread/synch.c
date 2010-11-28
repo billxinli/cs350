@@ -133,7 +133,7 @@ lock_create(const char *name)
 struct lock *lock_create_nokmalloc(const char *name) {
 	struct lock *lock;
 
-	lock = (struct lock *) PADDR_TO_KVADDR(ram_stealmem((sizeof (struct lock) + PAGE_SIZE - 1) / PAGE_SIZE));
+	lock = (struct lock *) ralloc(sizeof(struct lock));
 	if (lock == NULL) {
 		return NULL;
 	}

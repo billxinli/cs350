@@ -82,7 +82,7 @@ swap_index_t swap_write(void *data) {
     swap_index_t pagenum;
     lock_acquire(swapLock);
     if (freePages == NULL) {
-        panic("Out of memory!");
+        panic("Out of swap space");
     } else {
         pagenum = freePages->index;
         freePages = freePages->next;

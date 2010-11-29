@@ -18,7 +18,7 @@ void tlb_bootstrap(void);
 void tlb_add_entry(vaddr_t v, paddr_t p, int dirty);
 void tlb_context_switch(void);
 void tlb_init_free_list(void);
-void tlb_invalidate_vaddr(vaddr_t v);
+void tlb_invalidate_vaddr(int vpn);
 //private
 int tlb_get_rr_victim(void);
 int tlb_get_free_entry(void);

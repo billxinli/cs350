@@ -78,6 +78,7 @@ vm_fault(int faulttype, vaddr_t faultaddress) {
             panic("dumbvm: got VM_FAULT_READONLY\n");
         case VM_FAULT_READ:
         case VM_FAULT_WRITE:
+
             break;
         default:
             splx(spl);

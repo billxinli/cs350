@@ -88,11 +88,11 @@ int tlb_get_free_entry(void) {
 
 }
 
-void tlb_invalidate_vaddr(vaddr_t v) {
+void tlb_invalidate_vaddr(int vpn) {
 
     int victim;
 
-    victim = TLB_Probe(v, 0);
+    victim = TLB_Probe(vpn, 0);
 
     if (victim != -1) {
         TLB_Write(TLBHI_INVALID(victim), TLBLO_INVALID(), victim);

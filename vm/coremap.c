@@ -38,19 +38,14 @@ void cm_bootstrap() {
     core_map.free_frame_list = &(core_map.core_details[core_map.lowest_frame]);
     //initialize the frame details
     int i;
-    for (i = core_map.lowest_frame; i < (core_map.size - 1); i++) {
+    for (i = core_map.size - 1; i >= core_map.lowest_frame; i--) {
         core_map.core_details[i].id = i;
         core_map.core_details[i].vpn = -1;
         core_map.core_details[i].kern = 0;
         core_map.core_details[i].program = NULL;
-        core_map.core_details[i].next_free = &(core_map.core_details[i + 1]);
+        core_map.core_details[i].next_free = &(core_map.core_details[i - 1]);
     }
-
-    core_map.core_details[core_map.size - 1].id = core_map.size - 1;
-    core_map.core_details[core_map.size - 1].vpn = -1;
-    core_map.core_details[core_map.size - 1].kern = 0;
-    core_map.core_details[core_map.size - 1].program = NULL;
-    core_map.core_details[core_map.size - 1].next_free = NULL;
+    core_map.core_details[0].next_free = NULL; //fix the last entry
 }
 
 void free_list_add(struct cm_detail *new) {

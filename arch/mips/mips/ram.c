@@ -102,6 +102,7 @@ void *ralloc(int size) {
     paddr_t phys_addr = ram_stealmem((size + PAGE_SIZE - 1) / PAGE_SIZE);
     if (phys_addr == 0) {
         panic("Out of memory before VM is initialized. Wat.");
+        return NULL; //make the compiler happy
     } else {
         return (void *) PADDR_TO_KVADDR(phys_addr);
     }

@@ -40,9 +40,8 @@ alloc_kpages(int npages) {
 
 void
 free_kpages(vaddr_t addr) {
-    /* nothing */
-
-    (void) addr;
+    assert(addr % PAGE_SIZE == 0);
+    cm_release_kframes(addr / PAGE_SIZE);
 }
 
 int

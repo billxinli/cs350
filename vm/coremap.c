@@ -209,10 +209,20 @@ vaddr_t cm_request_kframes(int num) {
     if (frame == -1) {
         panic("No space to get %d kernel page(s)!", num);
     }
+    /*
+    NOTE: Instead of using more memory to store another variable in cm_details,
+    since vpn is unused for kernel pages, we recycle the vpn value so that in the
+    first page of a series of continuous kernel pages, the vpn is the number of
+    pages allocated for the large allocation. This is used to know how many
+    pages to free when we call cm_release_kframes
+    */
+    core_map.core_details[frame]->vpn = num;
+    // ///////////////
     for (int i = frame; i < frame + num; i++) {
         assert(core_map.core_details[i]->free || core_map.core_details[i]->kern == 0);
         core_map.core_details[i]->kern = 1;
     }
+
     for (int i = frame; i < frame + num; i++) {
         if (core_map.core_details[i]->free) {
             if (core_map.free_list == &core_map.core_details[i]) {
@@ -235,9 +245,17 @@ vaddr_t cm_request_kframes(int num) {
 
 void cm_release_frame(int frame_number) {
     assert(frame_number >= core_map.lowest_frame);
-    free_list_add(&core_map.core_details[frame_number]);
+    free_list_add(core_map.core_details[frame_number]);
 }
 
+void cm_release_kframes(int frame_number) {
+    int num = core_map.core_details[frame_number]->vpn; //see note above; in kernel pages, it stores the number of linked continuous pages
+    assert(num > 0);
+    for (int i = frame_number; i < frame_number + num; i++) {
+        assert(kalloced(core_details[i]));
+        cm_release_frame(i);
+    }
+}
 //call this after cm_request_frame (but not after cm_request_kframe)
 void cm_done_request(int frame) {
     core_map.core_details[frame]->kern = 0;

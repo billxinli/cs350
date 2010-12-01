@@ -33,6 +33,7 @@ void cm_release_frame(int frame_number);
 void cm_free_core(struct cm_detail *cd, struct page_detail * pd, int spl);
 vaddr_t cm_request_kframes(int num);
 void cm_done_request(int frame)
+void cm_release_kframes(int frame_number);
 
 #endif
 #endif

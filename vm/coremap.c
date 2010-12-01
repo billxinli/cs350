@@ -48,11 +48,11 @@ void cm_bootstrap() {
         core_map.core_details[i].free = 1;
     }
     core_map.core_details[0].next_free = NULL; //fix the last entry
-    core_map.core_deatils[core_map.size - 1].prev_free = NULL; //fix the first entry
+    core_map.core_details[core_map.size - 1].prev_free = NULL; //fix the first entry
 }
 
 void free_list_add(struct cm_detail *new) {
-    spl = splhigh();
+    int spl = splhigh();
     if (core_map.free_frame_list == NULL) {
         core_map.free_frame_list = new;
         new->next_free = NULL;
@@ -95,10 +95,6 @@ int clock_to_index(int c) {
 
 int cm_push_to_swap() {
     int spl = splhigh();
-    /**
-    TODO: We need to make sure that the paging system knows that the page has been moved
-    into swapspace and is no longer in RAM
-     **/
     int i = 0;
 
 
@@ -187,19 +183,20 @@ int cm_request_frame() {
     }
 }
 
-int kalloced(cm_details *frame) {
+int kalloced(struct cm_detail *frame) {
     return (frame->kern && frame->free == 0);
 }
 
 vaddr_t cm_request_kframes(int num) {
     assert(core_map.init); //don't call kmalloc before coremap is setup
     assert(curspl == 0); //interrupts must be off when calling kmalloc
-    spl = splhigh();
+    int spl = splhigh();
     int frame = -1;
-    for (int i = core_map.lowest_frame; i < core_map.size; i++) {
+    int i; int j;
+    for (i = core_map.lowest_frame; i < core_map.size; i++) {
         frame = i;
-        for (int j = 0; j < num; j++) {
-            if (kalloced(core_map.core_details[i+j])) {
+        for (j = 0; j < num; j++) {
+            if (kalloced(&core_map.core_details[i+j])) {
                 frame = -1;
                 break;
             }
@@ -216,25 +213,25 @@ vaddr_t cm_request_kframes(int num) {
     pages allocated for the large allocation. This is used to know how many
     pages to free when we call cm_release_kframes
     */
-    core_map.core_details[frame]->vpn = num;
+    core_map.core_details[frame].vpn = num;
     // ///////////////
-    for (int i = frame; i < frame + num; i++) {
-        assert(core_map.core_details[i]->free || core_map.core_details[i]->kern == 0);
-        core_map.core_details[i]->kern = 1;
+    for (i = frame; i < frame + num; i++) {
+        assert(core_map.core_details[i].free || core_map.core_details[i].kern == 0);
+        core_map.core_details[i].kern = 1;
     }
 
-    for (int i = frame; i < frame + num; i++) {
-        if (core_map.core_details[i]->free) {
-            if (core_map.free_list == &core_map.core_details[i]) {
-                core_map.free_list->next->prev = NULL;
-                core_map.free_list = core_map.free_list->next;
+    for (i = frame; i < frame + num; i++) {
+        if (core_map.core_details[i].free) {
+            if (core_map.free_frame_list == &core_map.core_details[i]) {
+                core_map.free_frame_list->next_free->prev_free = NULL;
+                core_map.free_frame_list = core_map.free_frame_list->next_free;
             } else {
-                core_map.core_details[i]->prev->next = core_map.core_details[i]->next;
-                core_map.core_details[i]->next->prev = core_map.core_details[i]->prev;
+                core_map.core_details[i].prev_free->next_free = core_map.core_details[i].next_free;
+                core_map.core_details[i].next_free->prev_free = core_map.core_details[i].prev_free;
             }
-            core_map.core_details[i]->free = 0;
+            core_map.core_details[i].free = 0;
         } else {
-            cm_free_core(core_map.core_details[i],pt_getpdetails(core_map.core_details[i]->vpn, core_map.core_details[i]->program) ,spl);
+            cm_free_core(&core_map.core_details[i],pt_getpdetails(core_map.core_details[i].vpn, core_map.core_details[i].program) ,spl);
             spl = splhigh();
         }
         
@@ -245,20 +242,21 @@ vaddr_t cm_request_kframes(int num) {
 
 void cm_release_frame(int frame_number) {
     assert(frame_number >= core_map.lowest_frame);
-    free_list_add(core_map.core_details[frame_number]);
+    free_list_add(&core_map.core_details[frame_number]);
 }
 
 void cm_release_kframes(int frame_number) {
-    int num = core_map.core_details[frame_number]->vpn; //see note above; in kernel pages, it stores the number of linked continuous pages
+    int num = core_map.core_details[frame_number].vpn; //see note above; in kernel pages, it stores the number of linked continuous pages
     assert(num > 0);
-    for (int i = frame_number; i < frame_number + num; i++) {
-        assert(kalloced(core_details[i]));
+    int i;
+    for (i = frame_number; i < frame_number + num; i++) {
+        assert(kalloced(&core_map.core_details[i]));
         cm_release_frame(i);
     }
 }
 //call this after cm_request_frame (but not after cm_request_kframe)
 void cm_done_request(int frame) {
-    core_map.core_details[frame]->kern = 0;
+    core_map.core_details[frame].kern = 0;
 }
 
 #endif /* OPT_A3 */

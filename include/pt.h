@@ -3,7 +3,7 @@
 #ifndef _PT_H_
 #define _PT_H_
 #include <swapfile.h>
-struct page_detail;
+#include <addrspace.h>
 
 struct page_detail {
 	int seg_id;
@@ -24,10 +24,11 @@ struct page_table {
 };
 
 
-struct page_table* pt_init();
+struct page_table* pt_create(struct segment *segments);
 struct page_detail* pt_getpdetails(int vpn, struct thread * t);
-
-void pt_destroy(struct page_detail* pt);
+int pt_checkreadonly(struct page_detail *pd);
+void pt_loadpage(struct page_detail *pd, int faulttype);
+void pt_destroy(struct page_table *pt) ;
 
 #endif
 #endif

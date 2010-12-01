@@ -103,6 +103,7 @@ int as_prepare_load(struct addrspace *as);
 int as_complete_load(struct addrspace *as);
 int as_define_stack(struct addrspace *as, vaddr_t *initstackptr);
 
+int load_segment(struct vnode *v, off_t offset, vaddr_t vaddr, size_t memsize, size_t filesize, int is_executable);
 #if OPT_A2
 int as_valid_read_addr(struct addrspace *as, vaddr_t *check_addr);
 int as_valid_write_addr(struct addrspace *as, vaddr_t *check_addr);
@@ -115,7 +116,6 @@ int as_valid_write_addr(struct addrspace *as, vaddr_t *check_addr);
  *               in the space pointed to by ENTRYPOINT.
  */
 
-int load_elf(struct vnode *v, vaddr_t *entrypoint);
-
+int load_elf(char *progname, vaddr_t *entrypoint);
 
 #endif /* _ADDRSPACE_H_ */

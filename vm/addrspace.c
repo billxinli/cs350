@@ -28,10 +28,6 @@ vm_bootstrap(void) {
     /* Do nothing. */
 }
 
-static paddr_t getppages(unsigned long npages) {
-    assert(0); //this should not be called anymore
-}
-
 /* Allocate/free some kernel-space virtual pages */
 vaddr_t
 alloc_kpages(int npages) {
@@ -46,8 +42,7 @@ free_kpages(vaddr_t addr) {
 
 int
 vm_fault(int faulttype, vaddr_t faultaddress) {
-    vaddr_t vbase1, vtop1, vbase2, vtop2, stackbase, stacktop;
-    paddr_t paddr;
+
     struct addrspace *as;
     int spl;
 
@@ -86,6 +81,7 @@ vm_fault(int faulttype, vaddr_t faultaddress) {
             }
 
             //page fault
+            pt_loadpage(pd, faulttype);
 
 
             break;
@@ -105,7 +101,7 @@ vm_fault(int faulttype, vaddr_t faultaddress) {
     }
 
     /* Assert that the address space has been set up properly. */
-    tlb_add_entry(faultaddress, paddr, 1);
+    // tlb_add_entry(faultaddress, paddr, 1);
     splx(spl);
     return 0;
 }
@@ -215,6 +211,9 @@ as_define_stack(struct addrspace *as, vaddr_t *stackptr) {
 
 int
 as_copy(struct addrspace *old, struct addrspace **ret) {
+    (void) old;
+    (void) ret;
+    /*
     struct addrspace *new;
 
     new = as_create();
@@ -248,33 +247,40 @@ as_copy(struct addrspace *old, struct addrspace **ret) {
             (const void *) PADDR_TO_KVADDR(old->as_stackpbase),
             DUMBVM_STACKPAGES * PAGE_SIZE);
 
-    *ret = new;
+     *ret = new;
+
+     */
     return 0;
 }
 
 int as_valid_read_addr(struct addrspace *as, vaddr_t *check_addr) {
-    if (check_addr < (vaddr_t*) USERTOP) {
-        if (check_addr >= (vaddr_t*) as->as_vbase1 && check_addr < (vaddr_t*) (as->as_vbase1 + as->as_npages1 * PAGE_SIZE)) {
+
+    int i = 0;
+    if (!(check_addr < (vaddr_t *) USERTOP)) {
+        return 0;
+    }
+
+    for (i = 0; i < 3; i++) {
+        if ((check_addr >= (vaddr_t *) as->segments[i].vbase) && (check_addr < (vaddr_t *) as->segments[i].vbase + PAGE_SIZE * as->segments[i].size)) {
             return 1;
         }
-        if (check_addr >= (vaddr_t*) as->as_vbase2 && check_addr < (vaddr_t*) (as->as_vbase2 + as->as_npages2 * PAGE_SIZE)) {
-            return 1;
-        }
-        if (check_addr >= (vaddr_t*) (USERTOP - DUMBVM_STACKPAGES * PAGE_SIZE)) {
-            return 1;
-        }
+
     }
     return 0;
 }
 
 int as_valid_write_addr(struct addrspace *as, vaddr_t *check_addr) {
-    if (check_addr < (vaddr_t*) USERTOP) {
-        if (check_addr >= (vaddr_t*) as->as_vbase2 && check_addr < (vaddr_t*) (as->as_vbase2 + as->as_npages2 * PAGE_SIZE)) {
+
+    int i = 0;
+    if (!(check_addr < (vaddr_t *) USERTOP)) {
+        return 0;
+    }
+
+    for (i = 1; i < 3; i++) {
+        if ((check_addr >= (vaddr_t *) as->segments[i].vbase) && (check_addr < (vaddr_t *) as->segments[i].vbase + PAGE_SIZE * as->segments[i].size)) {
             return 1;
         }
-        if (check_addr >= (vaddr_t*) (USERTOP - DUMBVM_STACKPAGES * PAGE_SIZE)) {
-            return 1;
-        }
+
     }
     return 0;
 }

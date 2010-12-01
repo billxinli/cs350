@@ -34,6 +34,7 @@ void cm_free_core(struct cm_detail *cd, struct page_detail * pd, int spl);
 vaddr_t cm_request_kframes(int num);
 void cm_done_request(int frame);
 void cm_release_kframes(int frame_number);
+void cm_finish_paging(int frame, struct thread * t, int vpn);
 
 #endif
 #endif

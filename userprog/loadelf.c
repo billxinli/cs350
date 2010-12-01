@@ -19,7 +19,7 @@
 #include <curthread.h>
 #include <vnode.h>
 
-
+#include <pt.h>
 #include <vfs.h>
 
 /*
@@ -36,7 +36,7 @@
  * change this code to not use uiomove, be sure to check for this case
  * explicitly.
  */
-static
+
 int
 load_segment(struct vnode *v, off_t offset, vaddr_t vaddr,
         size_t memsize, size_t filesize,
@@ -245,7 +245,7 @@ load_elf(char *progname, vaddr_t *entrypoint) {
         }
     }
 #endif
-    curthread->pt = pt_create(curthread->t_vmspace.segments);
+    curthread->pt = pt_create(curthread->t_vmspace->segments);
     
     result = as_complete_load(curthread->t_vmspace);
     if (result) {

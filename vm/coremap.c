@@ -81,7 +81,7 @@ struct cm_detail *free_list_pop() {
     /*
       temporarily set to a kernel page, so that it can't be swapped out
       until we finish the cm_request_frame call
-    */
+     */
     retval->kern = 1;
     retval->free = 0;
 
@@ -99,7 +99,7 @@ int cm_push_to_swap() {
 
 
     for (i = core_map.lowest_frame; i < core_map.size; i++) {
-        
+
         struct cm_detail *cd = &core_map.core_details[clock_to_index(core_map.clock_pointer)];
         if (cd->kern == 1) {
             struct page_detail * pd = pt_getpdetails(cd->vpn, cd->program);
@@ -116,7 +116,7 @@ int cm_push_to_swap() {
 
     }
     for (i = core_map.lowest_frame; i < core_map.size; i++) {
-        
+
         struct cm_detail *cd = &core_map.core_details[clock_to_index(core_map.clock_pointer)];
         if (cd->kern == 1) {
             struct page_detail * pd = pt_getpdetails(cd->vpn, cd->program);
@@ -134,7 +134,7 @@ int cm_push_to_swap() {
         core_map.clock_pointer = (core_map.clock_pointer + 1) % (core_map.size - core_map.lowest_frame);
     }
     for (i = core_map.lowest_frame; i < core_map.size; i++) {
-        
+
 
         struct cm_detail *cd = &core_map.core_details[clock_to_index(core_map.clock_pointer)];
         if (cd->kern == 1) {
@@ -155,15 +155,28 @@ int cm_push_to_swap() {
     return 0;
 }
 
+void cm_finish_paging(int frame, struct thread * t, int vpn) {
+    core_map.core_details[frame].kern = 0;
+    core_map.core_details[frame].free = 0;
+
+    core_map.core_details[frame].vpn = vpn;
+    core_map.core_details[frame].program = t;
+
+
+}
+
 void cm_free_core(struct cm_detail *cd, struct page_detail * pd, int spl) {
 
     //TODO: invalidate the TLB
-    
+
     pd->valid = 0;
     cd->kern = 1;
     splx(spl);
-
-    pd->sfn = swap_write(cd->id);
+    if (pd->modified) {
+        pd->sfn = swap_write(cd->id);
+    } else {
+        pd->sfn = -1;
+    }
 
     cd->vpn = -1;
     cd->program = NULL;
@@ -193,11 +206,12 @@ vaddr_t cm_request_kframes(int num) {
     assert(curspl == 0); //interrupts must be off when calling kmalloc
     int spl = splhigh();
     int frame = -1;
-    int i; int j;
+    int i;
+    int j;
     for (i = core_map.lowest_frame; i < core_map.size; i++) {
         frame = i;
         for (j = 0; j < num; j++) {
-            if (kalloced(&core_map.core_details[i+j])) {
+            if (kalloced(&core_map.core_details[i + j])) {
                 frame = -1;
                 break;
             }
@@ -213,7 +227,7 @@ vaddr_t cm_request_kframes(int num) {
     first page of a series of continuous kernel pages, the vpn is the number of
     pages allocated for the large allocation. This is used to know how many
     pages to free when we call cm_release_kframes
-    */
+     */
     core_map.core_details[frame].vpn = num;
     // ///////////////
     for (i = frame; i < frame + num; i++) {
@@ -232,10 +246,10 @@ vaddr_t cm_request_kframes(int num) {
             }
             core_map.core_details[i].free = 0;
         } else {
-            cm_free_core(&core_map.core_details[i],pt_getpdetails(core_map.core_details[i].vpn, core_map.core_details[i].program) ,spl);
+            cm_free_core(&core_map.core_details[i], pt_getpdetails(core_map.core_details[i].vpn, core_map.core_details[i].program), spl);
             spl = splhigh();
         }
-        
+
     }
     splx(spl);
     return PADDR_TO_KVADDR((paddr_t) (frame * PAGE_SIZE));
@@ -256,6 +270,7 @@ void cm_release_kframes(int frame_number) {
     }
 }
 //call this after cm_request_frame (but not after cm_request_kframe)
+
 void cm_done_request(int frame) {
     core_map.core_details[frame].kern = 0;
 }

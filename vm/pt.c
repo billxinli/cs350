@@ -16,6 +16,10 @@
 #include <vm.h>
 #include <swapfile.h>
 #include <pt.h>
+#include <addrspace.h>
+#include <vm_tlb.h>
+#include <coremap.h>
+
 
 struct page_table* pt_create(struct segment *segments) {
     struct page_table * pt = kmalloc(sizeof (struct page_table));
@@ -68,7 +72,7 @@ struct page_detail* pt_getpdetails(int vpn, struct thread * t) {
 }
 
 int pt_checkreadonly(struct page_detail *pd) {
-    if (pd->writeable) {
+    if (pd->dirty) {
         pd->modified = 1;
         tlb_invalidate_vaddr(pd->vpn);
         tlb_add_entry(pd->vpn, pd->pfn, 1);
@@ -83,6 +87,21 @@ void pt_loadpage(struct page_detail *pd, int faulttype) {
     int frame = cm_request_frame();
     if (pd->sfn == -1) {
 
+
+
+        int offset = curthread->t_vmspace->segments[pd->seg_id].p_offset + (curthread->t_vmspace->segments[pd->seg_id].vbase - pd->vpn * PAGE_SIZE);
+        int filesize = curthread->t_vmspace->segments[pd->seg_id].p_filesz - (curthread->t_vmspace->segments[pd->seg_id].vbase - pd->vpn * PAGE_SIZE);
+        if (filesize < 0) {
+            filesize = 0;
+        }
+
+        if (filesize > PAGE_SIZE) {
+            filesize = PAGE_SIZE;
+        }
+        load_segment(curthread->t_vmspace->file, offset, pd->vpn*PAGE_SIZE, PAGE_SIZE, filesize, 1);
+
+
+
     } else {
         swap_read(frame, pd->sfn);
     }
@@ -92,6 +111,9 @@ void pt_loadpage(struct page_detail *pd, int faulttype) {
     pd->valid = 1;
     pd->modified = 0;
     pd->use = 1;
+
+    cm_finish_paging(frame, curthread, pd->vpn);
+
 
 }
 

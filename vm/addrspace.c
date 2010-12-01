@@ -17,6 +17,7 @@
 #include <machine/spl.h>
 #include <machine/tlb.h>
 #include <vm_tlb.h>
+#include <coremap.h>
 
 
 /* under dumbvm, always have 48k of user stack */
@@ -27,29 +28,14 @@ vm_bootstrap(void) {
     /* Do nothing. */
 }
 
-static
-paddr_t
-getppages(unsigned long npages) {
-    int spl;
-    paddr_t addr;
-
-    spl = splhigh();
-
-    addr = ram_stealmem(npages);
-
-    splx(spl);
-    return addr;
+static paddr_t getppages(unsigned long npages) {
+    assert(0); //this should not be called anymore
 }
 
 /* Allocate/free some kernel-space virtual pages */
 vaddr_t
 alloc_kpages(int npages) {
-    paddr_t pa;
-    pa = getppages(npages);
-    if (pa == 0) {
-        return 0;
-    }
-    return PADDR_TO_KVADDR(pa);
+    return cm_request_kframes(npages);
 }
 
 void

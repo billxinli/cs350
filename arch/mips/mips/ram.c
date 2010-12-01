@@ -98,6 +98,7 @@ This could be made better to not waste space, but this is only called a few
 times, so I'm not going to worry about it too much
 */
 void *ralloc(int size) {
+    assert(lastpaddr != 0); //Use kmalloc now, not ralloc, FOOL
     paddr_t phys_addr = ram_stealmem((size + PAGE_SIZE - 1) / PAGE_SIZE);
     if (phys_addr == 0) {
         panic("Out of memory before VM is initialized. Wat.");

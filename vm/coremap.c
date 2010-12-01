@@ -44,18 +44,27 @@ void cm_bootstrap() {
         core_map.core_details[i].kern = 0;
         core_map.core_details[i].program = NULL;
         core_map.core_details[i].next_free = &(core_map.core_details[i - 1]);
+        core_map.core_details[i].prev_free = &(core_map.core_details[i + 1]);
+        core_map.core_details[i].free = 1;
     }
     core_map.core_details[0].next_free = NULL; //fix the last entry
+    core_map.core_deatils[core_map.size - 1].prev_free = NULL; //fix the first entry
 }
 
 void free_list_add(struct cm_detail *new) {
+    spl = splhigh();
     if (core_map.free_frame_list == NULL) {
         core_map.free_frame_list = new;
         new->next_free = NULL;
+        new->prev_free = NULL;
     } else {
         new->next_free = core_map.free_frame_list;
+        new->prev_free = NULL;
+        core_map.free_frame_list->prev_free = new;
         core_map.free_frame_list = new;
     }
+    new->free = 1;
+    splx(spl);
 }
 
 struct cm_detail *free_list_pop() {
@@ -68,6 +77,13 @@ struct cm_detail *free_list_pop() {
     struct cm_detail *retval;
     retval = core_map.free_frame_list;
     core_map.free_frame_list = core_map.free_frame_list->next_free;
+    core_map.free_frame_list->prev_free = NULL;
+    /*
+      temporarily set to a kernel page, so that it can't be swapped out
+      until we finish the cm_request_frame call
+    */
+    retval->kern = 1;
+    retval->free = 0;
 
     splx(spl);
     return retval;
@@ -87,7 +103,7 @@ int cm_push_to_swap() {
 
 
     for (i = core_map.lowest_frame; i < core_map.size; i++) {
-        ///TODO: first pass of page replacement algorithm
+        
         struct cm_detail *cd = &core_map.core_details[clock_to_index(core_map.clock_pointer)];
         if (cd->kern == 1) {
             struct page_detail * pd = pt_getpdetails(cd->vpn, cd->program);
@@ -104,7 +120,7 @@ int cm_push_to_swap() {
 
     }
     for (i = core_map.lowest_frame; i < core_map.size; i++) {
-        ///TODO: second pass of page replacement algorithm
+        
         struct cm_detail *cd = &core_map.core_details[clock_to_index(core_map.clock_pointer)];
         if (cd->kern == 1) {
             struct page_detail * pd = pt_getpdetails(cd->vpn, cd->program);
@@ -122,7 +138,7 @@ int cm_push_to_swap() {
         core_map.clock_pointer = (core_map.clock_pointer + 1) % (core_map.size - core_map.lowest_frame);
     }
     for (i = core_map.lowest_frame; i < core_map.size; i++) {
-        ///TODO: third pass of page replacement algorithm
+        
 
         struct cm_detail *cd = &core_map.core_details[clock_to_index(core_map.clock_pointer)];
         if (cd->kern == 1) {
@@ -158,9 +174,6 @@ void cm_free_core(struct cm_detail *cd, struct page_detail * pd, int spl) {
 }
 
 int cm_request_frame() {
-    assert(curspl > 0); ///Currently, interrupts must be disabled, but we should write this
-    ///so that we use locks (will probably have to add another member to cm_details indicating
-    ///if a frame is currently being moved to swap by another process
     struct cm_detail *frame = free_list_pop();
     if (frame == NULL) {
         /*
@@ -174,10 +187,60 @@ int cm_request_frame() {
     }
 }
 
+int kalloced(cm_details *frame) {
+    return (frame->kern && frame->free == 0);
+}
+
+vaddr_t cm_request_kframes(int num) {
+    assert(core_map.init); //don't call kmalloc before coremap is setup
+    assert(curspl == 0); //interrupts must be off when calling kmalloc
+    spl = splhigh();
+    int frame = -1;
+    for (int i = core_map.lowest_frame; i < core_map.size; i++) {
+        frame = i;
+        for (int j = 0; j < num; j++) {
+            if (kalloced(core_map.core_details[i+j])) {
+                frame = -1;
+                break;
+            }
+        }
+        if (frame != -1) break;
+    }
+    if (frame == -1) {
+        panic("No space to get %d kernel page(s)!", num);
+    }
+    for (int i = frame; i < frame + num; i++) {
+        assert(core_map.core_details[i]->free || core_map.core_details[i]->kern == 0);
+        core_map.core_details[i]->kern = 1;
+    }
+    for (int i = frame; i < frame + num; i++) {
+        if (core_map.core_details[i]->free) {
+            if (core_map.free_list == &core_map.core_details[i]) {
+                core_map.free_list->next->prev = NULL;
+                core_map.free_list = core_map.free_list->next;
+            } else {
+                core_map.core_details[i]->prev->next = core_map.core_details[i]->next;
+                core_map.core_details[i]->next->prev = core_map.core_details[i]->prev;
+            }
+            core_map.core_details[i]->free = 0;
+        } else {
+            cm_free_core(core_map.core_details[i],pt_getpdetails(core_map.core_details[i]->vpn, core_map.core_details[i]->program) ,spl);
+            spl = splhigh();
+        }
+        
+    }
+    splx(spl);
+    return PADDR_TO_KVADDR((paddr_t) (frame * PAGE_SIZE));
+}
+
 void cm_release_frame(int frame_number) {
-    assert(curspl > 0); ///see note in cm_request frame about interrupts
     assert(frame_number >= core_map.lowest_frame);
     free_list_add(&core_map.core_details[frame_number]);
+}
+
+//call this after cm_request_frame (but not after cm_request_kframe)
+void cm_done_request(int frame) {
+    core_map.core_details[frame]->kern = 0;
 }
 
 #endif /* OPT_A3 */

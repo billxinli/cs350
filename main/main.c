@@ -76,32 +76,23 @@ boot(void) {
     kprintf("\n");
 
     ram_bootstrap();
-    /* uncomment this when kmalloc is updated
+
 #if OPT_A3
     tlb_bootstrap();
     swap_bootstrap();
     cm_bootstrap();
 #endif
-*/
+
     scheduler_bootstrap();
     thread_bootstrap();
     vfs_bootstrap();
     dev_bootstrap();
-    /* uncomment this when kmalloc is updated
+    
 #if !OPT_A3
     vm_bootstrap();
 #endif
-    */
+    
     kprintf_bootstrap();
-    ///remove this when kmalloc is updated
-    #if OPT_A3
-    tlb_bootstrap();
-    swap_bootstrap();
-    cm_bootstrap();
-    #else
-    vm_bootstrap();
-    #endif
-    ///
 
     /* Default bootfs - but ignore failure, in case emu0 doesn't exist */
     vfs_setbootfs("emu0");

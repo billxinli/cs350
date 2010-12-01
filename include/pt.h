@@ -3,9 +3,10 @@
 #ifndef _PT_H_
 #define _PT_H_
 #include <swapfile.h>
-//struct page_details;
+struct page_detail;
 
 struct page_detail {
+	int seg_id;
 	int vpn; //virtual page num
 	int pfn; //physical frame num
 	swap_index_t sfn; //swap frame num
@@ -25,6 +26,9 @@ struct page_table {
 
 struct page_table* pt_init();
 struct page_detail* pt_getpdetails(int vpn, struct thread * t);
+
+void pt_destroy(struct page_detail* pt);
+
 #endif
 #endif
 

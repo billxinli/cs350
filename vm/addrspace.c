@@ -1,7 +1,6 @@
 #include <types.h>
 #include <kern/errno.h>
 #include <lib.h>
-#include <thread.h>
 #include <curthread.h>
 #include <addrspace.h>
 #include <vm.h>
@@ -11,13 +10,13 @@
 #include <machine/tlb.h>
 #include "opt-A3.h"
 
-#if OPT_A3
+//#if OPT_A3
 #include <thread.h>
 #include <curthread.h>
 #include <machine/spl.h>
 #include <machine/tlb.h>
 #include <vm_tlb.h>
-#include <coremap.h>
+#include <pt.h>
 
 
 /* under dumbvm, always have 48k of user stack */
@@ -57,12 +56,36 @@ vm_fault(int faulttype, vaddr_t faultaddress) {
 
     DEBUG(DB_VM, "dumbvm: fault: 0x%x\n", faultaddress);
 
+    struct page_detail *pd = pt_getpdetails((faultaddress / PAGE_SIZE), curthread);
+
+    if (pd == NULL) {
+        thread_exit();
+    }
+
     switch (faulttype) {
         case VM_FAULT_READONLY:
-            /* We always create pages read-write, so we can't get this */
-            panic("dumbvm: got VM_FAULT_READONLY\n");
+            if (pt_checkreadonly(pd)) {
+                thread_exit();
+                /* We always create pages read-write, so we can't get this */
+                panic("dumbvm: got VM_FAULT_READONLY\n");
+            }
+            break;
         case VM_FAULT_READ:
         case VM_FAULT_WRITE:
+
+
+            if (pd->valid) {
+                tlb_add_entry(faultaddress, pd->pfn*PAGE_SIZE, pd->dirty);
+                pd->use = 1;
+                if (faulttype == VM_FAULT_WRITE) {
+                    pd->modified = 1;
+                }
+                splx(spl);
+                return 0;
+            }
+
+            //page fault
+
 
             break;
         default:
@@ -81,41 +104,6 @@ vm_fault(int faulttype, vaddr_t faultaddress) {
     }
 
     /* Assert that the address space has been set up properly. */
-    assert(as->as_vbase1 != 0);
-    assert(as->as_pbase1 != 0);
-    assert(as->as_npages1 != 0);
-    assert(as->as_vbase2 != 0);
-    assert(as->as_pbase2 != 0);
-    assert(as->as_npages2 != 0);
-    assert(as->as_stackpbase != 0);
-    assert((as->as_vbase1 & PAGE_FRAME) == as->as_vbase1);
-    assert((as->as_pbase1 & PAGE_FRAME) == as->as_pbase1);
-    assert((as->as_vbase2 & PAGE_FRAME) == as->as_vbase2);
-    assert((as->as_pbase2 & PAGE_FRAME) == as->as_pbase2);
-    assert((as->as_stackpbase & PAGE_FRAME) == as->as_stackpbase);
-
-    vbase1 = as->as_vbase1;
-    vtop1 = vbase1 + as->as_npages1 * PAGE_SIZE;
-    vbase2 = as->as_vbase2;
-    vtop2 = vbase2 + as->as_npages2 * PAGE_SIZE;
-    stackbase = USERSTACK - DUMBVM_STACKPAGES * PAGE_SIZE;
-    stacktop = USERSTACK;
-
-    if (faultaddress >= vbase1 && faultaddress < vtop1) {
-        paddr = (faultaddress - vbase1) + as->as_pbase1;
-    } else if (faultaddress >= vbase2 && faultaddress < vtop2) {
-        paddr = (faultaddress - vbase2) + as->as_pbase2;
-    } else if (faultaddress >= stackbase && faultaddress < stacktop) {
-        paddr = (faultaddress - stackbase) + as->as_stackpbase;
-    } else {
-        splx(spl);
-        return EFAULT;
-    }
-
-    /* make sure it's page-aligned */
-    assert((paddr & PAGE_FRAME) == paddr);
-
-
     tlb_add_entry(faultaddress, paddr, 1);
     splx(spl);
     return 0;
@@ -127,20 +115,14 @@ as_create(void) {
     if (as == NULL) {
         return NULL;
     }
-
-    as->as_vbase1 = 0;
-    as->as_pbase1 = 0;
-    as->as_npages1 = 0;
-    as->as_vbase2 = 0;
-    as->as_pbase2 = 0;
-    as->as_npages2 = 0;
-    as->as_stackpbase = 0;
-
+    //as->pt = NULL;
+    as->file = NULL;
     return as;
 }
 
 void
 as_destroy(struct addrspace *as) {
+    //pt_destroy(as->pt);
     kfree(as);
 }
 
@@ -164,50 +146,40 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t sz,
 
     npages = sz / PAGE_SIZE;
 
-    /* We don't use these - all pages are read-write */
+    /* We don't use these - all pages are read */
     (void) readable;
-    (void) writeable;
     (void) executable;
 
-    if (as->as_vbase1 == 0) {
-        as->as_vbase1 = vaddr;
-        as->as_npages1 = npages;
+    if (as->segments[0].vbase == 0) {
+        as->segments[0].vbase = vaddr;
+        as->segments[0].size = npages;
+        as->segments[0].writeable = writeable;
         return 0;
     }
 
-    if (as->as_vbase2 == 0) {
-        as->as_vbase2 = vaddr;
-        as->as_npages2 = npages;
+    if (as->segments[1].vbase == 0) {
+        as->segments[1].vbase = vaddr;
+        as->segments[1].size = npages;
+        as->segments[1].writeable = writeable;
         return 0;
     }
+
+
+
+
 
     /*
      * Support for more than two regions is not available.
      */
-    kprintf("dumbvm: Warning: too many regions\n");
+    kprintf("addrspace: Warning: too many regions\n");
     return EUNIMP;
 }
 
 int
 as_prepare_load(struct addrspace *as) {
-    assert(as->as_pbase1 == 0);
-    assert(as->as_pbase2 == 0);
-    assert(as->as_stackpbase == 0);
 
-    as->as_pbase1 = getppages(as->as_npages1);
-    if (as->as_pbase1 == 0) {
-        return ENOMEM;
-    }
+    (void) as;
 
-    as->as_pbase2 = getppages(as->as_npages2);
-    if (as->as_pbase2 == 0) {
-        return ENOMEM;
-    }
-
-    as->as_stackpbase = getppages(DUMBVM_STACKPAGES);
-    if (as->as_stackpbase == 0) {
-        return ENOMEM;
-    }
 
     return 0;
 }
@@ -220,7 +192,21 @@ as_complete_load(struct addrspace *as) {
 
 int
 as_define_stack(struct addrspace *as, vaddr_t *stackptr) {
-    assert(as->as_stackpbase != 0);
+    assert(as->segments[2].vbase == 0);
+
+
+    as->segments[2].vbase = USERSTACK - PAGE_SIZE*DUMBVM_STACKPAGES;
+    as->segments[2].size = DUMBVM_STACKPAGES;
+
+    as->segments[2].writeable = 1;
+
+
+    //as->segments[2].p_offset; /* Location of data within file */
+    //as->segments[2].p_filesz; /* Size of data within file */
+    //as->segments[2].p_memsz; /* Size of data to be loaded into memory*/
+    //as->segments[2].p_flags; /* Flags */
+
+
 
     *stackptr = USERSTACK;
     return 0;

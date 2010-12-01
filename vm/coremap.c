@@ -157,7 +157,8 @@ int cm_push_to_swap() {
 
 void cm_free_core(struct cm_detail *cd, struct page_detail * pd, int spl) {
 
-
+    //TODO: invalidate the TLB
+    
     pd->valid = 0;
     cd->kern = 1;
     splx(spl);

@@ -19,7 +19,7 @@ struct tlbfreelist tlb_free_list;
 
 void tlb_bootstrap(void) {
     //tlb_next_free = 0;
-    tlb_free_list.tlbfreenodes = (struct tlbfreenode *) ralloc(sizeof(struct tlbfreenode) * NUM_TLB);
+    tlb_free_list.tlbfreenodes = (struct tlbfreenode *) ralloc(sizeof (struct tlbfreenode) * NUM_TLB);
     tlb_init_free_list();
 }
 
@@ -40,8 +40,11 @@ void tlb_init_free_list(void) {
     tlb_free_list.tlbfreenodes[NUM_TLB - 1].next = NULL;
 }
 
-void tlb_add_entry(vaddr_t v, paddr_t p, int dirty) {
+void tlb_add_entry(int vpn, paddr_t p, int dirty) {
     int spl;
+
+   // v = v - (v % PAGE_SIZE);
+   // p = p - (p % PAGE_SIZE);
 
     spl = splhigh();
     int tlb_entry = tlb_get_free_entry();
@@ -54,7 +57,7 @@ void tlb_add_entry(vaddr_t v, paddr_t p, int dirty) {
         elo = elo | TLBLO_DIRTY;
     }
 
-    TLB_Write(v, elo, tlb_entry);
+    TLB_Write(vpn, elo, tlb_entry);
     splx(spl);
 }
 

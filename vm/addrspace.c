@@ -10,13 +10,14 @@
 #include <machine/tlb.h>
 #include "opt-A3.h"
 
-//#if OPT_A3
+#if OPT_A3
 #include <thread.h>
 #include <curthread.h>
 #include <machine/spl.h>
 #include <machine/tlb.h>
 #include <vm_tlb.h>
 #include <pt.h>
+#include <coremap.h>
 
 
 /* under dumbvm, always have 48k of user stack */

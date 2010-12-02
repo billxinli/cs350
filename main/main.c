@@ -17,6 +17,11 @@
 #include <syscall.h>
 #include <version.h>
 #include "opt-A0.h"
+#include "opt-A3.h"
+
+#if OPT_A3
+#include <vm_tlb.h>
+#endif /* OPT_A3 */
 
 /*
  * These two pieces of data are maintained by the makefiles and build system.
@@ -34,63 +39,64 @@ extern const char buildconfig[];
  * Copyright message for the OS/161 base code.
  */
 static const char harvard_copyright[] =
-    "Copyright (c) 2000, 2001, 2002, 2003\n"
-    "   President and Fellows of Harvard College.  All rights reserved.\n";
-
+        "Copyright (c) 2000, 2001, 2002, 2003\n"
+        "   President and Fellows of Harvard College.  All rights reserved.\n";
 
 /*
  * Initial boot sequence.
  */
 static
 void
-boot(void)
-{
-	/*
-	 * The order of these is important!
-	 * Don't go changing it without thinking about the consequences.
-	 *
-	 * Among other things, be aware that console output gets
-	 * buffered up at first and does not actually appear until
-	 * dev_bootstrap() attaches the console device. This can be
-	 * remarkably confusing if a bug occurs at this point. So
-	 * don't put new code before dev_bootstrap if you don't
-	 * absolutely have to.
-	 *
-	 * Also note that the buffer for this is only 1k. If you
-	 * overflow it, the system will crash without printing
-	 * anything at all. You can make it larger though (it's in
-	 * dev/generic/console.c).
-	 */
+boot(void) {
+    /*
+     * The order of these is important!
+     * Don't go changing it without thinking about the consequences.
+     *
+     * Among other things, be aware that console output gets
+     * buffered up at first and does not actually appear until
+     * dev_bootstrap() attaches the console device. This can be
+     * remarkably confusing if a bug occurs at this point. So
+     * don't put new code before dev_bootstrap if you don't
+     * absolutely have to.
+     *
+     * Also note that the buffer for this is only 1k. If you
+     * overflow it, the system will crash without printing
+     * anything at all. You can make it larger though (it's in
+     * dev/generic/console.c).
+     */
 
-	kprintf("\n");
-	kprintf("OS/161 base system version %s\n", BASE_VERSION);
-	kprintf("%s", harvard_copyright);
-	kprintf("\n");
-	#if OPT_A0
-		hello();
-	#endif /* OPT_A0 */
+    kprintf("\n");
+    kprintf("OS/161 base system version %s\n", BASE_VERSION);
+    kprintf("%s", harvard_copyright);
+    kprintf("\n");
+#if OPT_A0
+    hello();
+#endif /* OPT_A0 */
 
-	kprintf("Bill, Matt, and Steven's system version %s (%s #%d)\n", 
-		GROUP_VERSION, buildconfig, buildversion);
-	kprintf("\n");
+    kprintf("Bill, Matt, and Steven's system version %s (%s #%d)\n",
+            GROUP_VERSION, buildconfig, buildversion);
+    kprintf("\n");
 
-	ram_bootstrap();
-	scheduler_bootstrap();
-	thread_bootstrap();
-	vfs_bootstrap();
-	dev_bootstrap();
-	vm_bootstrap();
-	kprintf_bootstrap();
+    ram_bootstrap();
+    scheduler_bootstrap();
+    thread_bootstrap();
+    vfs_bootstrap();
+    dev_bootstrap();
+    vm_bootstrap();
+#if OPT_A3
+    tlb_bootstrap();
+#endif /* OPT_A3 */
+    kprintf_bootstrap();
 
-	/* Default bootfs - but ignore failure, in case emu0 doesn't exist */
-	vfs_setbootfs("emu0");
+    /* Default bootfs - but ignore failure, in case emu0 doesn't exist */
+    vfs_setbootfs("emu0");
 
 
-	/*
-	 * Make sure various things aren't screwed up.
-	 */
-	assert(sizeof(userptr_t)==sizeof(char *));
-	assert(sizeof(*(userptr_t)0)==sizeof(char));
+    /*
+     * Make sure various things aren't screwed up.
+     */
+    assert(sizeof (userptr_t) == sizeof (char *));
+    assert(sizeof (*(userptr_t) 0) == sizeof (char));
 }
 
 /*
@@ -98,19 +104,18 @@ boot(void)
  */
 static
 void
-shutdown(void)
-{
+shutdown(void) {
 
-	kprintf("Shutting down.\n");
-	
-	vfs_clearbootfs();
-	vfs_clearcurdir();
-	vfs_unmountall();
+    kprintf("Shutting down.\n");
 
-	splhigh();
+    vfs_clearbootfs();
+    vfs_clearcurdir();
+    vfs_unmountall();
 
-	scheduler_shutdown();
-	thread_shutdown();
+    splhigh();
+
+    scheduler_shutdown();
+    thread_shutdown();
 }
 
 /*****************************************/
@@ -123,36 +128,35 @@ shutdown(void)
  * code should probably live in the "userprog" directory.
  */
 int
-sys_reboot(int code)
-{
-	switch (code) {
-	    case RB_REBOOT:
-	    case RB_HALT:
-	    case RB_POWEROFF:
-		break;
-	    default:
-		return EINVAL;
-	}
+sys_reboot(int code) {
+    switch (code) {
+        case RB_REBOOT:
+        case RB_HALT:
+        case RB_POWEROFF:
+            break;
+        default:
+            return EINVAL;
+    }
 
-	shutdown();
+    shutdown();
 
-	switch (code) {
-	    case RB_HALT:
-		kprintf("The system is halted.\n");
-		md_halt();
-		break;
-	    case RB_REBOOT:
-		kprintf("Rebooting...\n");
-		md_reboot();
-		break;
-	    case RB_POWEROFF:
-		kprintf("The system is halted.\n");
-		md_poweroff();
-		break;
-	}
+    switch (code) {
+        case RB_HALT:
+            kprintf("The system is halted.\n");
+            md_halt();
+            break;
+        case RB_REBOOT:
+            kprintf("Rebooting...\n");
+            md_reboot();
+            break;
+        case RB_POWEROFF:
+            kprintf("The system is halted.\n");
+            md_poweroff();
+            break;
+    }
 
-	panic("reboot operation failed\n");
-	return 0;
+    panic("reboot operation failed\n");
+    return 0;
 }
 
 /*
@@ -160,12 +164,11 @@ sys_reboot(int code)
  * request, and then shut down.
  */
 int
-kmain(char *arguments)
-{
-	boot();
+kmain(char *arguments) {
+    boot();
 
-	menu(arguments);
+    menu(arguments);
 
-	/* Should not get here */
-	return 0;
+    /* Should not get here */
+    return 0;
 }

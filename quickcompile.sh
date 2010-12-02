@@ -25,7 +25,6 @@ while true; do
 				cd ~/cs350-os161/os161-1.11/kern/conf
 				./config ASST${asst}
 				cd ../compile/ASST${asst}
-				make clean
 				make depend
 				make 
 				make install

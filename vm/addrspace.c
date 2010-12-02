@@ -7,11 +7,10 @@
 #include "opt-A2.h"
 #include "opt-A3.h"
 
-
 #if OPT_A3
-
 #include <thread.h>
 #include <curthread.h>
+#include <vm_tlb.h>
 #include <machine/spl.h>
 #include <machine/tlb.h>
 
@@ -59,8 +58,6 @@ int
 vm_fault(int faulttype, vaddr_t faultaddress) {
     vaddr_t vbase1, vtop1, vbase2, vtop2, stackbase, stacktop;
     paddr_t paddr;
-    int i;
-    u_int32_t ehi, elo;
     struct addrspace *as;
     int spl;
 
@@ -124,25 +121,12 @@ vm_fault(int faulttype, vaddr_t faultaddress) {
         return EFAULT;
     }
 
-    /* make sure it's page-aligned */
-    assert((paddr & PAGE_FRAME) == paddr);
 
-    for (i = 0; i < NUM_TLB; i++) {
-        TLB_Read(&ehi, &elo, i);
-        if (elo & TLBLO_VALID) {
-            continue;
-        }
-        ehi = faultaddress;
-        elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
-        DEBUG(DB_VM, "dumbvm: 0x%x -> 0x%x\n", faultaddress, paddr);
-        TLB_Write(ehi, elo, i);
-        splx(spl);
-        return 0;
-    }
+    tlb_add_entry(faultaddress, paddr, 1);
 
-    kprintf("dumbvm: Ran out of TLB entries - cannot handle page fault\n");
+
     splx(spl);
-    return EFAULT;
+    return 0;
 }
 
 /*
@@ -177,17 +161,11 @@ as_destroy(struct addrspace *as) {
 
 void
 as_activate(struct addrspace *as) {
-    int i, spl;
+
 
     (void) as;
 
-    spl = splhigh();
-
-    for (i = 0; i < NUM_TLB; i++) {
-        TLB_Write(TLBHI_INVALID(i), TLBLO_INVALID(), i);
-    }
-
-    splx(spl);
+    tlb_context_switch();
 }
 
 int

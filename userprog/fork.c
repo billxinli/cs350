@@ -31,8 +31,10 @@ pid_t sys_fork(struct trapframe *tf) {
         return ENOMEM;
     }
     struct thread *child = NULL;
+
+    void (*func_pt)(void *, unsigned long) = &md_forkentry;
     
-    int result = thread_fork(strcat(child_name, "'s child"), tf, 0, md_forkentry, &child);
+    int result = thread_fork(strcat(child_name, "'s child"), tf, 0, func_pt, &child);
    
     if (result != 0) {
         kfree(new_child);
@@ -56,7 +58,7 @@ pid_t sys_fork(struct trapframe *tf) {
         DEBUG(DB_THREADS, "Not enough memory to copy address space in fork. Closing child...\n");
         child->t_vmspace = NULL;
         child->parent = NULL; //to prevent thread_destroy from freeing a non-existant pid
-        md_initpcb(&child->t_pcb, child->t_stack, 0, 0, thread_exit); //set new thread to delete itself
+        md_initpcb(&child->t_pcb, child->t_stack, 0, 0, &thread_exit); //set new thread to delete itself
         splx(spl);
         return err;
     }
@@ -66,7 +68,7 @@ pid_t sys_fork(struct trapframe *tf) {
         if (ft_add(child->ft, ft_get(curthread->ft, j)) == -1) {
             DEBUG(DB_THREADS, "Not enough memory to copy file table in fork. Closing child...\n");
             child->parent = NULL; //to prevent thread_destroy from freeing a non-existant pid
-            md_initpcb(&child->t_pcb, child->t_stack, 0, 0, thread_exit); //set new thread to delete itself
+            md_initpcb(&child->t_pcb, child->t_stack, 0, 0, &thread_exit); //set new thread to delete itself
             splx(spl);
             return ENOMEM;
         }

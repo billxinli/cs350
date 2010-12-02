@@ -1,6 +1,5 @@
 #include <curthread.h>
 #include "opt-A1.h"
-#include "opt-A3.h"
 
 /*
  * Header file for synchronization primitives.
@@ -65,9 +64,6 @@ void         lock_acquire(struct lock *);
 void         lock_release(struct lock *);
 int          lock_do_i_hold(struct lock *);
 void         lock_destroy(struct lock *);
-#if OPT_A3
-struct lock *lock_create_nokmalloc(const char *name);
-#endif
 
 
 /*

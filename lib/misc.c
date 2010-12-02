@@ -1,12 +1,6 @@
-#include "opt-A3.h"
-
 #include <types.h>
 #include <kern/errmsg.h>
 #include <lib.h>
-
-#if OPT_A3
-#include <vm.h>
-#endif
 
 /*
  * Like strdup, but calls kmalloc.
@@ -14,16 +8,7 @@
 char *
 kstrdup(const char *s)
 {
-    #if OPT_A3
-    char *z;
-    if (is_vm_setup()) {
-        z = kmalloc(strlen(s)+1);
-    } else {
-        z = ralloc(strlen(s)+1);
-    }
-    #else
 	char *z = kmalloc(strlen(s)+1);
-	#endif
 	if (z==NULL) {
 		return NULL;
 	}

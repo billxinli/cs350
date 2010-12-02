@@ -26,11 +26,15 @@
 #if OPT_A2
 
 int runprogram(char *progname, char ** args, unsigned long nargs) {
-    
+    struct vnode *v;
     vaddr_t entrypoint, stackptr;
     int result;
 
-    
+    /* Open the file. */
+    result = vfs_open(progname, O_RDONLY, &v);
+    if (result) {
+        return result;
+    }
 
     /* We should be a new thread. */
     assert(curthread->t_vmspace == NULL);
@@ -38,6 +42,7 @@ int runprogram(char *progname, char ** args, unsigned long nargs) {
     /* Create a new address space. */
     curthread->t_vmspace = as_create();
     if (curthread->t_vmspace == NULL) {
+        vfs_close(v);
         return ENOMEM;
     }
 
@@ -47,12 +52,15 @@ int runprogram(char *progname, char ** args, unsigned long nargs) {
     assert(curthread->t_vmspace != NULL);
 
     /* Load the executable. */
-    result = load_elf(progname, &entrypoint);
+    result = load_elf(v, &entrypoint);
     if (result) {
         /* thread_exit destroys curthread->t_vmspace */
+        vfs_close(v);
         return result;
     }
 
+    /* Done with the file now. */
+    vfs_close(v);
 
     /* Define the user stack in the address space */
     result = as_define_stack(curthread->t_vmspace, &stackptr);

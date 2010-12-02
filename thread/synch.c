@@ -11,11 +11,6 @@
 #include <machine/spl.h>
 
 #include "opt-A1.h"
-#include "opt-A3.h"
-
-#if OPT_A3
-#include <vm.h>
-#endif
 
 ////////////////////////////////////////////////////////////
 //
@@ -110,28 +105,14 @@ lock_create(const char *name)
 {
 	struct lock *lock;
 
-	#if OPT_A3
-	if (is_vm_setup()) {
-	    lock = kmalloc(sizeof(struct lock));
-	} else {
-	    lock = ralloc(sizeof(struct lock));
-	}
-	#else
 	lock = kmalloc(sizeof(struct lock));
-	#endif
 	if (lock == NULL) {
 		return NULL;
 	}
 
 	lock->name = kstrdup(name);
 	if (lock->name == NULL) {
-	    #if OPT_A3
-	    if (is_vm_setup()) {
-	        kfree(lock);
-	    }
-	    #else
 		kfree(lock);
-		#endif
 		return NULL;
 	}
 	
@@ -151,15 +132,9 @@ lock_destroy(struct lock *lock)
 #if OPT_A1
     assert(lock->acquired == 0); //lock should be released before it is destroyed
 #endif
-	#if OPT_A3
-	if (is_kmalloced(lock)) {
-	    kfree(lock->name);
-	    kfree(lock);
-	}
-	#else
-	  kfree(lock->name);
-	  kfree(lock);
-	#endif
+	
+	kfree(lock->name);
+	kfree(lock);
 }
 
 void

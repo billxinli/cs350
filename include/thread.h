@@ -15,45 +15,37 @@
 #include <synch.h>
 #endif
 
-#include "opt-A3.h"
-#if OPT_A3
-#include <pt.h>
-#endif
-
 struct addrspace;
 
 struct thread {
 	/**********************************************************/
 	/* Private thread members - internal to the thread system */
 	/**********************************************************/
-
+	
 	struct pcb t_pcb;
 	char *t_name;
 	const void *t_sleepaddr;
 	char *t_stack;
-
+	
 	/**********************************************************/
 	/* Public thread members - can be used by other code      */
 	/**********************************************************/
-
-#if OPT_A2
-	volatile pid_t pid;
-	volatile struct thread *parent;
-	volatile struct child_table *children;
+	
+	#if OPT_A2
+	pid_t pid;
+	struct thread *parent;
+	struct child_table *children;
 	int exit_status;
 	/*
 	 * This is the filetable for the thread.
 	 */
 	struct filetable *ft;
-
+	
 	/*
 	 Locks
-	 */
-#endif /* OPT_A2 */
-
-#if OPT_A3
-	struct page_table *pt;
-#endif /* OPT_A3 */
+	*/
+	#endif
+	
 	/*
 	 * This is public because it isn't part of the thread system,
 	 * and will need to be manipulated by the userprog and/or vm
@@ -87,10 +79,10 @@ void thread_shutdown(void);
  * general the child thread might exit at any time.) Returns an error
  * code.
  */
-int thread_fork(const char *name,
-	void *data1, unsigned long data2,
-	void (*func)(void *, unsigned long),
-	struct thread **ret);
+int thread_fork(const char *name, 
+		void *data1, unsigned long data2, 
+		void (*func)(void *, unsigned long),
+		struct thread **ret);
 
 /*
  * Cause the current thread to exit.
@@ -155,8 +147,8 @@ int one_thread_only(void);
  */
 
 /* Machine independent entry point for new threads. */
-void mi_threadstart(void *data1, unsigned long data2,
-	void (*func)(void *, unsigned long));
+void mi_threadstart(void *data1, unsigned long data2, 
+		    void (*func)(void *, unsigned long));
 
 /* Machine dependent context switch. */
 void md_switch(struct pcb *old, struct pcb *nu);

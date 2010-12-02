@@ -1,3 +1,5 @@
+#include "opt-A2.h"
+
 #ifndef _KERN_ERRNO_H_
 #define _KERN_ERRNO_H_
 
@@ -36,6 +38,8 @@
 #define ENOEXEC      24     /* File is not executable */
 #define E2BIG        25     /* Argument list too long */
 #define EBADF        26     /* Bad file number */
+#ifdef OPT_A2
 #define ESRCH        27     /* Invalid Process ID */
+#endif
 
 #endif /* _KERN_ERRNO_H_ */

@@ -4,7 +4,6 @@
 #include <vm.h>
 #include "opt-dumbvm.h"
 #include "opt-A2.h"
-#include "opt-A3.h"
 
 struct vnode;
 
@@ -14,41 +13,27 @@ struct vnode;
  *
  * You write this.
  */
-#if OPT_A3
-
-struct segment {
-	vaddr_t vbase; /*Base Virtual Address*/
-	size_t size; /*Number of pages*/
-
-	int writeable; /* Writeable */
-
-	u_int32_t p_offset; /* Location of data within file */
-	u_int32_t p_filesz; /* Size of data within file */
-	u_int32_t p_memsz; /* Size of data to be loaded into memory*/
-	u_int32_t p_flags; /* Flags */
-};
-#endif /* OPT_A3 */
 
 struct addrspace {
 #if OPT_DUMBVM
-	vaddr_t as_vbase1;
-	paddr_t as_pbase1;
-	size_t as_npages1;
-	vaddr_t as_vbase2;
-	paddr_t as_pbase2;
-	size_t as_npages2;
-	paddr_t as_stackpbase;
+    vaddr_t as_vbase1;
+    paddr_t as_pbase1;
+    size_t as_npages1;
+    vaddr_t as_vbase2;
+    paddr_t as_pbase2;
+    size_t as_npages2;
+    paddr_t as_stackpbase;
 #else
-	/* Put stuff here for your VM system */
-#if OPT_A3
-	//Segments
-	struct segment segments[3];
+    /* Put stuff here for your VM system */
 
-	struct vnode *file;
-
-#endif /* OPT_A3 */
-
-#endif /* OPT_DUMBVM */
+    vaddr_t as_vbase1;
+    paddr_t as_pbase1;
+    size_t as_npages1;
+    vaddr_t as_vbase2;
+    paddr_t as_pbase2;
+    size_t as_npages2;
+    paddr_t as_stackpbase;
+#endif
 };
 
 /*
@@ -95,15 +80,14 @@ void as_activate(struct addrspace *);
 void as_destroy(struct addrspace *);
 
 int as_define_region(struct addrspace *as,
-	vaddr_t vaddr, size_t sz,
-	int readable,
-	int writeable,
-	int executable);
+        vaddr_t vaddr, size_t sz,
+        int readable,
+        int writeable,
+        int executable);
 int as_prepare_load(struct addrspace *as);
 int as_complete_load(struct addrspace *as);
 int as_define_stack(struct addrspace *as, vaddr_t *initstackptr);
 
-int load_segment(struct vnode *v, off_t offset, vaddr_t vaddr, size_t memsize, size_t filesize, int is_executable);
 #if OPT_A2
 int as_valid_read_addr(struct addrspace *as, vaddr_t *check_addr);
 int as_valid_write_addr(struct addrspace *as, vaddr_t *check_addr);
@@ -116,6 +100,7 @@ int as_valid_write_addr(struct addrspace *as, vaddr_t *check_addr);
  *               in the space pointed to by ENTRYPOINT.
  */
 
-int load_elf(char *progname, vaddr_t *entrypoint);
+int load_elf(struct vnode *v, vaddr_t *entrypoint);
+
 
 #endif /* _ADDRSPACE_H_ */

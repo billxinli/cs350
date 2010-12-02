@@ -1,5 +1,4 @@
 #include "opt-A2.h"
-#include "opt-A3.h"
 
 #include <types.h>
 #include <lib.h>
@@ -548,12 +547,6 @@ subpage_kfree(void *ptr)
 void *
 kmalloc(size_t sz)
 {
-    #if OPT_A3
-    if (is_vm_setup() == 0) {
-        DEBUG(DB_KFREE, "DEBUG: kprintf called before vm setup. Calling ralloc instead.\n");
-        return ralloc(sz);
-    }
-    #endif
 	if (sz>=LARGEST_SUBPAGE_SIZE) {
 		unsigned long npages;
 		vaddr_t address;
@@ -574,12 +567,6 @@ kmalloc(size_t sz)
 void
 kfree(void *ptr)
 {
-    #if OPT_A3
-    if (is_kmalloced(ptr) == 0) {
-        DEBUG(DB_KFREE, "DEBUG: Calling kfree on memory allocated with ralloc. Ignoring call.\n");
-        return;
-    }
-    #endif
 	/*
 	 * Try subpage first; if that fails, assume it's a big allocation.
 	 */

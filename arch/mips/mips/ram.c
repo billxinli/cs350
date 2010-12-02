@@ -1,5 +1,3 @@
-#include "opt-A3.h"
-
 #include <types.h>
 #include <lib.h>
 #include <vm.h>
@@ -9,10 +7,6 @@ u_int32_t firstfree;   /* first free virtual address; set by start.S */
 
 static u_int32_t firstpaddr;  /* address of first free physical page */
 static u_int32_t lastpaddr;   /* one past end of last free physical page */
-
-#if OPT_A3
-unsigned int min_kmalloc = 0xffffffff;
-#endif
 
 /*
  * Called very early in system boot to figure out how much physical
@@ -92,34 +86,5 @@ ram_getsize(u_int32_t *lo, u_int32_t *hi)
 {
 	*lo = firstpaddr;
 	*hi = lastpaddr;
-	min_kmalloc = firstpaddr;
 	firstpaddr = lastpaddr = 0;
 }
-
-#if OPT_A3
-/*
-Used to allocate memory before the virtual memory management is setup.
-This could be made better to not waste space, but this is only called a few
-times, so I'm not going to worry about it too much
-*/
-void *ralloc(int size) {
-    assert(lastpaddr != 0); //Use kmalloc now, not ralloc, FOOL
-    paddr_t phys_addr = ram_stealmem((size + PAGE_SIZE - 1) / PAGE_SIZE);
-    if (phys_addr == 0) {
-        panic("Out of memory before VM is initialized. Wat.");
-        return NULL; //make the compiler happy
-    } else {
-        return (void *) PADDR_TO_KVADDR(phys_addr);
-    }
-}
-
-//returns 1 if the vm is setup and kmalloc can be used. 0 otherwise
-int is_vm_setup() {
-    return (lastpaddr == 0);
-}
-
-int is_kmalloced(void *addr) {
-    return ((unsigned int) addr >= min_kmalloc);
-}
-    
-#endif

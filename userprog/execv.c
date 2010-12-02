@@ -103,15 +103,15 @@ int sys_execv(char *progname, char ** args) {
         copyinstr((const_userptr_t) args[i], kern_argumentPointer[i], (arg_size + 1),NULL);
     }
 
-  //  struct vnode *v;
+    struct vnode *v;
     vaddr_t entrypoint, stackptr;
     int result;
 
     /* Open the file. */
-   // result = vfs_open(kern_progname, O_RDONLY, &v);
-   // if (result) {
-   //     return result;
-   // }
+    result = vfs_open(kern_progname, O_RDONLY, &v);
+    if (result) {
+        return result;
+    }
 
 
     
@@ -127,7 +127,7 @@ int sys_execv(char *progname, char ** args) {
     /* Create a new address space. */
     curthread->t_vmspace = as_create();
     if (curthread->t_vmspace == NULL) {
-      //  vfs_close(v);
+        vfs_close(v);
         return ENOMEM;
     }
     
@@ -139,17 +139,17 @@ int sys_execv(char *progname, char ** args) {
 
     DEBUG(DB_EXEC, "EXECV[%d] Before LOAD_ELF - progname: [%s] - Address space: [%d]\n",(int)curthread->pid, kern_progname, (int)curthread->t_vmspace);
     /* Load the executable. */
-    result = load_elf(kern_progname, &entrypoint);
+    result = load_elf(v, &entrypoint);
     if (result) {
         /* thread_exit destroys curthread->t_vmspace */
-        //vfs_close(v);
+        vfs_close(v);
         return result;
     }
     DEBUG(DB_EXEC, "EXECV[%d] After LOAD_ELF - progname: [%s] - Address space: [%d]\n",(int)curthread->pid, kern_progname, (int)curthread->t_vmspace);
 
 
     /* Done with the file now. */
-    //vfs_close(v);
+    vfs_close(v);
 
     /* Define the user stack in the address space */
     result = as_define_stack(curthread->t_vmspace, &stackptr);

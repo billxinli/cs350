@@ -255,8 +255,8 @@
 # for them.
 # 
 
-defdevice       beep                    dev/generic/beep.c
-defdevice       con                     dev/generic/console.c
+defdevice       beep			dev/generic/beep.c
+defdevice	con			dev/generic/console.c
 defdevice       rtclock                 dev/generic/rtclock.c
 defdevice       random                  dev/generic/random.c
 
@@ -267,9 +267,9 @@ defdevice       random                  dev/generic/random.c
 # unrelated.)
 #
 
-defdevice       pseudorand              dev/generic/pseudorand.c
+defdevice	pseudorand		dev/generic/pseudorand.c
 pseudoattach    pseudorand
-defattach       random0 pseudorand0     dev/generic/pseudorand_att.c
+defattach	random0 pseudorand0	dev/generic/pseudorand_att.c
 
 ########################################
 #                                      #
@@ -402,11 +402,6 @@ file      userprog/fork.c
 #
 
 optofffile dumbvm   vm/addrspace.c
-file    vm/coremap.c
-file    vm/pt.c
-file    vm/segments.c
-file    vm/vm_tlb.c
-file    vm/swapfile.c
 
 #
 # Network
@@ -460,23 +455,21 @@ optfile   synchprobs  asst1/bowls.c
 #                                      #
 ########################################
 
-file            test/arraytest.c
-file            test/bitmaptest.c
-file            test/queuetest.c
-file            test/threadtest.c
-file            test/tt3.c
-file            test/synchtest.c
-file            test/malloctest.c
-file            test/fstest.c
-optfile net     test/nettest.c
+file		test/arraytest.c
+file		test/bitmaptest.c
+file		test/queuetest.c
+file		test/threadtest.c
+file		test/tt3.c
+file		test/synchtest.c
+file		test/malloctest.c
+file		test/fstest.c
+optfile net	test/nettest.c
 
 # UW options for different assignments
 defoption A0
 defoption A1
 defoption A2
 defoption A3
-file    vm/vmstats.c
 defoption A4
 defoption A5
-
 

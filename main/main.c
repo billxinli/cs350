@@ -20,6 +20,7 @@
 #include "opt-A3.h"
 
 #if OPT_A3
+#include <vmstats.h>
 #include <vm_tlb.h>
 #endif /* OPT_A3 */
 
@@ -64,7 +65,6 @@ boot(void) {
      * anything at all. You can make it larger though (it's in
      * dev/generic/console.c).
      */
-
     kprintf("\n");
     kprintf("OS/161 base system version %s\n", BASE_VERSION);
     kprintf("%s", harvard_copyright);
@@ -116,6 +116,7 @@ shutdown(void) {
 
     scheduler_shutdown();
     thread_shutdown();
+    vm_shutdown();
 }
 
 /*****************************************/

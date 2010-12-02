@@ -11,6 +11,7 @@
 #include <thread.h>
 #include <curthread.h>
 #include <vm_tlb.h>
+#include <vmstats.h>
 #include <machine/spl.h>
 #include <machine/tlb.h>
 
@@ -19,7 +20,13 @@
 
 void
 vm_bootstrap(void) {
-    /* Do nothing. */
+    vmstats_init();
+}
+
+void vm_shutdown(void) {
+    int spl = splhigh();
+    _vmstats_print();
+    splx(spl);
 }
 
 static
@@ -73,6 +80,8 @@ vm_fault(int faulttype, vaddr_t faultaddress) {
             panic("dumbvm: got VM_FAULT_READONLY\n");
         case VM_FAULT_READ:
         case VM_FAULT_WRITE:
+
+            _vmstats_inc(VMSTAT_TLB_FAULT);
             break;
         default:
             splx(spl);
@@ -122,7 +131,7 @@ vm_fault(int faulttype, vaddr_t faultaddress) {
     }
 
 
-    tlb_add_entry(faultaddress, paddr, 1);
+    tlb_add_entry(faultaddress, paddr, 1, 1);
 
 
     splx(spl);

@@ -13,6 +13,7 @@
 #include <machine/spl.h>
 #include <machine/tlb.h>
 #include <vm_tlb.h>
+#include <vmstats.h>
 
 struct tlbfreelist tlb_free_list;
 
@@ -39,7 +40,7 @@ void tlb_init_free_list(void) {
     tlb_free_list.tlbfreenodes[NUM_TLB - 1].next = NULL;
 }
 
-void tlb_add_entry(vaddr_t v, paddr_t p, int dirty) {
+void tlb_add_entry(vaddr_t v, paddr_t p, int dirty, int update_stats) {
     int spl;
 
     assert((v & PAGE_FRAME) == v);
@@ -50,7 +51,12 @@ void tlb_add_entry(vaddr_t v, paddr_t p, int dirty) {
     spl = splhigh();
     int tlb_entry = tlb_get_free_entry();
     if (tlb_entry == -1) {
+        if (update_stats) {
+            _vmstats_inc(VMSTAT_TLB_FAULT_REPLACE);
+        }
         tlb_entry = tlb_get_rr_victim();
+    } else if (update_stats) {
+        _vmstats_inc(VMSTAT_TLB_FAULT_FREE);
     }
 
     u_int32_t elo = p | TLBLO_VALID;
@@ -115,6 +121,7 @@ void tlb_context_switch(void) {
     //tlb_next_free = 0;
     tlb_init_free_list();
 
+    _vmstats_inc(VMSTAT_TLB_INVALIDATE);
     for (i = 0; i < NUM_TLB; i++) {
         TLB_Write(TLBHI_INVALID(i), TLBLO_INVALID(), i);
     }

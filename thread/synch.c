@@ -110,14 +110,28 @@ lock_create(const char *name)
 {
 	struct lock *lock;
 
+	#if OPT_A3
+	if (is_vm_setup()) {
+	    lock = kmalloc(sizeof(struct lock));
+	} else {
+	    lock = ralloc(sizeof(struct lock));
+	}
+	#else
 	lock = kmalloc(sizeof(struct lock));
+	#endif
 	if (lock == NULL) {
 		return NULL;
 	}
 
 	lock->name = kstrdup(name);
 	if (lock->name == NULL) {
+	    #if OPT_A3
+	    if (is_vm_setup()) {
+	        kfree(lock);
+	    }
+	    #else
 		kfree(lock);
+		#endif
 		return NULL;
 	}
 	
@@ -128,28 +142,6 @@ lock_create(const char *name)
 	
 	return lock;
 }
-
-#if OPT_A3
-struct lock *lock_create_nokmalloc(const char *name) {
-	struct lock *lock;
-
-	lock = (struct lock *) ralloc(sizeof(struct lock));
-	if (lock == NULL) {
-		return NULL;
-	}
-
-	lock->name = kstrdup(name);
-	if (lock->name == NULL) {
-		kfree(lock);
-		return NULL;
-	}
-	
-	lock->owner = NULL;
-	lock->acquired = 0;
-	
-	return lock;
-}
-#endif
 
 void
 lock_destroy(struct lock *lock)
@@ -159,9 +151,15 @@ lock_destroy(struct lock *lock)
 #if OPT_A1
     assert(lock->acquired == 0); //lock should be released before it is destroyed
 #endif
-	
-	kfree(lock->name);
-	kfree(lock);
+	#if OPT_A3
+	if (is_kmalloced(lock)) {
+	    kfree(lock->name);
+	    kfree(lock);
+	}
+	#else
+	  kfree(lock->name);
+	  kfree(lock);
+	#endif
 }
 
 void

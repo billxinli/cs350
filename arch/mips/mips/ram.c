@@ -10,6 +10,10 @@ u_int32_t firstfree;   /* first free virtual address; set by start.S */
 static u_int32_t firstpaddr;  /* address of first free physical page */
 static u_int32_t lastpaddr;   /* one past end of last free physical page */
 
+#if OPT_A3
+unsigned int min_kmalloc = 0xffffffff;
+#endif
+
 /*
  * Called very early in system boot to figure out how much physical
  * RAM is available.
@@ -88,6 +92,7 @@ ram_getsize(u_int32_t *lo, u_int32_t *hi)
 {
 	*lo = firstpaddr;
 	*hi = lastpaddr;
+	min_kmalloc = firstpaddr;
 	firstpaddr = lastpaddr = 0;
 }
 
@@ -107,4 +112,14 @@ void *ralloc(int size) {
         return (void *) PADDR_TO_KVADDR(phys_addr);
     }
 }
+
+//returns 1 if the vm is setup and kmalloc can be used. 0 otherwise
+int is_vm_setup() {
+    return (lastpaddr == 0);
+}
+
+int is_kmalloced(void *addr) {
+    return ((unsigned int) addr >= min_kmalloc);
+}
+    
 #endif

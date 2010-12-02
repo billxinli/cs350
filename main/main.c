@@ -89,7 +89,7 @@ boot(void) {
     vfs_bootstrap();
     dev_bootstrap();
     
-#if !OPT_A3
+#ifndef OPT_A3
     vm_bootstrap();
 #endif
     

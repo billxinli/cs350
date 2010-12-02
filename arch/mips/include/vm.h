@@ -76,6 +76,15 @@ void ram_getsize(paddr_t *lo, paddr_t *hi);
 system is setup (pre-kmalloc)
 */
 void *ralloc(int size);
+/*
+returns weather or not the vm has been setup (which determines weather to use
+kmalloc or ralloc)
+*/
+int is_vm_setup();
+/*
+returns 1 if the address was allocated with kmalloc, and 0 if with ralloc
+*/
+int is_kmalloced(void *addr);
 #endif
 
 /*

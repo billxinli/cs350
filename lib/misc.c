@@ -15,10 +15,11 @@ char *
 kstrdup(const char *s)
 {
     #if OPT_A3
+    char *z;
     if (is_vm_setup()) {
-        char *z = kmalloc(strlen(s)+1);
+        z = kmalloc(strlen(s)+1);
     } else {
-        char *z = ralloc(strlen(s)+1);
+        z = ralloc(strlen(s)+1);
     }
     #else
 	char *z = kmalloc(strlen(s)+1);

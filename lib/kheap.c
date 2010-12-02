@@ -575,7 +575,7 @@ void
 kfree(void *ptr)
 {
     #if OPT_A3
-    if (kmalloced(ptr) == 0) {
+    if (is_kmalloced(ptr) == 0) {
         DEBUG(DB_KFREE, "DEBUG: Calling kfree on memory allocated with ralloc. Ignoring call.\n");
         return;
     }

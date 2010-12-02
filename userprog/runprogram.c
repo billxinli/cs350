@@ -26,7 +26,7 @@
 #if OPT_A2
 
 int runprogram(char *progname, char ** args, unsigned long nargs) {
-    struct vnode *v;
+    
     vaddr_t entrypoint, stackptr;
     int result;
 

@@ -106,7 +106,7 @@ frame
 void swap_read(int phys_frame_num, swap_index_t n) {
     assert(curspl == 0); //interrupts should be on
     lock_acquire(swapLock);
-    void *write_addr = PADDR_TO_KVADDR(phys_frame_num * PAGE_SIZE);
+    void *write_addr = (void *) PADDR_TO_KVADDR(phys_frame_num * PAGE_SIZE);
     struct uio *u = kmalloc(sizeof (struct uio));
     mk_kuio(u, write_addr, PAGE_SIZE, (int) n * PAGE_SIZE, UIO_READ);
     VOP_READ(swapfile, u);

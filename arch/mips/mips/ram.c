@@ -1,3 +1,5 @@
+#include "opt-A3.h"
+
 #include <types.h>
 #include <lib.h>
 #include <vm.h>
@@ -7,6 +9,10 @@ u_int32_t firstfree;   /* first free virtual address; set by start.S */
 
 static u_int32_t firstpaddr;  /* address of first free physical page */
 static u_int32_t lastpaddr;   /* one past end of last free physical page */
+
+#if OPT_A3
+int first_vm_addr = 0x7fffffff; //first address available after ram_getsize is called
+#endif
 
 /*
  * Called very early in system boot to figure out how much physical
@@ -86,5 +92,18 @@ ram_getsize(u_int32_t *lo, u_int32_t *hi)
 {
 	*lo = firstpaddr;
 	*hi = lastpaddr;
+	#if OPT_A3
+	first_vm_addr = firstpaddr;
+	#endif
 	firstpaddr = lastpaddr = 0;
 }
+
+#if OPT_A3
+int is_vm_setup() {
+    return (lastpaddr == 0);
+}
+
+int was_vm_alloced(void *ptr) { //was the memory allocated after the vm was setup?
+    return ((int) ptr >= first_vm_addr);
+}
+#endif

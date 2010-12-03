@@ -1,6 +1,8 @@
 #ifndef _VM_H_
 #define _VM_H_
 
+#include "opt-A3.h"
+
 #include <machine/vm.h>
 
 /*
@@ -25,5 +27,10 @@ int vm_fault(int faulttype, vaddr_t faultaddress);
 /* Allocate/free kernel heap pages (called by kmalloc/kfree) */
 vaddr_t alloc_kpages(int npages);
 void free_kpages(vaddr_t addr);
+
+#if OPT_A3
+int is_vm_setup();
+int was_vm_alloced(void *ptr);
+#endif
 
 #endif /* _VM_H_ */

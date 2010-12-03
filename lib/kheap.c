@@ -1,4 +1,5 @@
 #include "opt-A2.h"
+#include "opt-A3.h"
 
 #include <types.h>
 #include <lib.h>
@@ -547,6 +548,17 @@ subpage_kfree(void *ptr)
 void *
 kmalloc(size_t sz)
 {
+    #if OPT_A3
+    if (is_vm_setup() == 0) {
+        paddr_t phys_addr = ram_stealmem((sz + PAGE_SIZE - 1) / PAGE_SIZE);
+        if (phys_addr == 0) {
+            panic("Out of memory before VM is initialized. Wat.");
+            return NULL; //make the compiler happy
+        } else {
+            return (void *) PADDR_TO_KVADDR(phys_addr);
+        }
+    }
+    #endif
 	if (sz>=LARGEST_SUBPAGE_SIZE) {
 		unsigned long npages;
 		vaddr_t address;
@@ -567,6 +579,12 @@ kmalloc(size_t sz)
 void
 kfree(void *ptr)
 {
+    #if OPT_A3
+    if (was_vm_alloced(ptr) == 0) {
+        DEBUG(DB_KMALLOC, "kfree called on memory allocated before vm was setup. Ignoring.\n");
+        return;
+    }
+    #endif
 	/*
 	 * Try subpage first; if that fails, assume it's a big allocation.
 	 */

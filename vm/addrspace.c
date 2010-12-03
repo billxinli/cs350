@@ -15,6 +15,7 @@
 #include <pt.h>
 #include <machine/spl.h>
 #include <machine/tlb.h>
+#include <coremap.h>
 
 #include <elf.h>
 /* under dumbvm, always have 48k of user stack */

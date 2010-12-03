@@ -11,7 +11,7 @@ struct page_detail {
 	vaddr_t vaddr; //virtual page num
 	int pfn; //physical frame num
 	//TODO: fix
-	int sfn; //swap frame num
+	swap_index_t sfn; //swap frame num
 	int valid; //valid bit
 	int dirty; //dirty bit (can we modify)
 	int use; //use bit (have we used the page recently)

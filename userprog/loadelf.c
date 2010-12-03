@@ -41,7 +41,7 @@
  * explicitly.
  */
 
-int load_segment_page(struct vnode *v, vaddr_t vaddr, struct segment *s) {
+int load_segment_page(struct vnode *v, vaddr_t vaddr, struct segment *s, paddr_t paddr) {
     struct uio u;
     int result;
     size_t fillamt;
@@ -51,11 +51,11 @@ int load_segment_page(struct vnode *v, vaddr_t vaddr, struct segment *s) {
     }
 
     DEBUG(DB_EXEC, "ELF: Loading to 0x%lx\n", (unsigned long) vaddr);
+    DEBUG(DB_ELF, "E4444444443333LF: Loading to %x\n", paddr);
 
     int read_size = 0;
 
-    //TODO: remove
-    paddr_t paddr = ((vaddr - s->vbase) + s->pbase) & PAGE_FRAME;
+
     u.uio_iovec.iov_kbase = (void *) PADDR_TO_KVADDR(paddr);
     u.uio_iovec.iov_len = PAGE_SIZE; // length of the memory space
     u.uio_offset = vaddr - s->vbase + s->p_offset;

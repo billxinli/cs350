@@ -3,7 +3,6 @@
 #include <lib.h>
 #include <addrspace.h>
 #include <vm.h>
-
 #include "opt-A2.h"
 #include "opt-A3.h"
 
@@ -13,6 +12,7 @@
 #include <segments.h>
 #include <vm_tlb.h>
 #include <vmstats.h>
+#include <pt.h>
 #include <machine/spl.h>
 #include <machine/tlb.h>
 
@@ -30,7 +30,7 @@ void vm_shutdown(void) {
     splx(spl);
 }
 
-static paddr_t getppages(unsigned long npages) {
+paddr_t getppages(unsigned long npages) {
     int spl;
     paddr_t addr;
 
@@ -106,14 +106,12 @@ int vm_fault(int faulttype, vaddr_t faultaddress) {
     }
 
     struct segment * s = as_get_segment(as, faultaddress);
-    load_segment_page(as->file, faultaddress, s);
+    paddr = pt_get_paddr(as, faultaddress, s);
 
     _vmstats_inc(VMSTAT_TLB_FAULT);
 
     int writeable;
 
-    //TODO: pbase
-    paddr = (faultaddress - s->vbase + s->pbase) & PAGE_FRAME;
     writeable = s->writeable;
 
     DEBUG(DB_ELF, "TLB ADDING ENTRY: %x -> %x\n", faultaddress, paddr);
@@ -128,8 +126,6 @@ int vm_fault(int faulttype, vaddr_t faultaddress) {
  * assignment, this file is not compiled or linked or in any way
  * used. The cheesy hack versions in dumbvm.c are used instead.
  */
-
-
 struct addrspace * as_create(void) {
     struct addrspace *as = kmalloc(sizeof (struct addrspace));
     if (as == NULL) {
@@ -140,9 +136,6 @@ struct addrspace * as_create(void) {
     for (i = 0; i < AS_NUM_SEG - 1; i++) {
         as->segments[i].active = 0;
         as->segments[i].vbase = 0;
-
-        //TODO: Remove
-        as->segments[i].pbase = 0;
         as->segments[i].size = 0;
         as->segments[i].writeable = 0;
         as->segments[i].p_offset = 0;
@@ -152,28 +145,19 @@ struct addrspace * as_create(void) {
 
     }
 
-
-
-
-
+    as->pt = NULL;
     as->file = NULL;
     as->num_segments = 0;
     return as;
 }
 
-void
-as_destroy(struct addrspace *as) {
-
+void as_destroy(struct addrspace *as) {
     kfree(as);
 }
 
-void
-as_activate(struct addrspace *as) {
-
-
+void as_activate(struct addrspace *as) {
     (void) as;
-
-    //tlb_context_switch();
+    // tlb_context_switch();
 }
 
 int as_define_region(struct addrspace *as, vaddr_t vaddr, size_t sz, int flags, u_int32_t offset, u_int32_t filesz) {
@@ -200,8 +184,6 @@ int as_define_region(struct addrspace *as, vaddr_t vaddr, size_t sz, int flags, 
         as->segments[as->num_segments].p_memsz = memsz;
         as->segments[as->num_segments].p_filesz = filesz;
         as->segments[as->num_segments].p_flags = flags & PF_X;
-
-
         //DEBUG(DB_ELF, "\t SEG: %d vbase: 0x%x  \n", as->num_segments, as->segments[as->num_segments].vbase);
         //DEBUG(DB_ELF, "\t SEG: %d size: %d \n", as->num_segments, npages);
         //DEBUG(DB_ELF, "\t SEG: %d writeable: %d \n", as->num_segments, flags & PF_W);
@@ -209,9 +191,6 @@ int as_define_region(struct addrspace *as, vaddr_t vaddr, size_t sz, int flags, 
         //DEBUG(DB_ELF, "\t SEG: %d p_memsz: %d \n", as->num_segments, memsz);
         //DEBUG(DB_ELF, "\t SEG: %d p_filesz: %d \n", as->num_segments, filesz);
         //DEBUG(DB_ELF, "\t SEG: %d p_flags: %d \n", as->num_segments, flags & PF_X);
-
-
-
         as->num_segments++;
         return 0;
     } else {
@@ -228,102 +207,33 @@ int as_define_region(struct addrspace *as, vaddr_t vaddr, size_t sz, int flags, 
 }
 
 int as_prepare_load(struct addrspace *as) {
-    int i;
-    for (i = 0; i < AS_NUM_SEG - 1; i++) {
-        if (as->segments[i].active) {
-            //TODO: remove
-            assert(as->segments[i].pbase == 0);
-            as->segments[i].pbase = getppages(as->segments[i].size);
-
-            //DEBUG(DB_ELF, "ELF: pbase: %x\n", as->segments[i].pbase);
-            if (as->segments[i].pbase == 0) {
-                return ENOMEM;
-            }
-        }
-
-    }
+    (void) as;
     return 0;
 }
 
 int as_complete_load(struct addrspace *as) {
     (void) as;
-
     return 0;
 }
 
 int as_copy(struct addrspace *old, struct addrspace **ret) {
-
-    assert(0);
-    struct addrspace *new;
-
-    new = as_create();
-    if (new == NULL) {
-        return ENOMEM;
-    }
-
-    int i = 0;
-    for (i = 0; i < AS_NUM_SEG; i++) {
-
-        if (old->segments[i].active) {
-            new->segments[i].active = 1;
-            new->segments[i].vbase = old->segments[i].vbase;
-            new->segments[i].size = old->segments[i].size;
-
-            new->segments[i].writeable = old->segments[i].writeable;
-            new->segments[i].p_offset = old->segments[i].p_offset;
-            new->segments[i].p_filesz = old->segments[i].p_filesz;
-            new->segments[i].p_memsz = old->segments[i].p_memsz;
-            new->segments[i].p_flags = old->segments[i].p_flags;
-        }
-    }
-
-
-    new->file = old->file;
-    new->num_segments = old->num_segments;
-
-    if (as_prepare_load(new)) {
-        as_destroy(new);
-        return ENOMEM;
-    }
-
-    for (i = 0; i < AS_NUM_SEG; i++) {
-        if (new->segments[i].active) {
-            //TODO: remove
-            assert(new->segments[i].pbase != 0);
-        }
-    }
-
-    for (i = 0; i < AS_NUM_SEG; i++) {
-        //TODO:remove/fix
-        memmove((void *) PADDR_TO_KVADDR(new->segments[i].pbase),
-                (const void *) PADDR_TO_KVADDR(old->segments[i].pbase),
-                old->segments[i].size * PAGE_SIZE);
-
-    }
-    *ret = new;
-
+    (void) old;
+    (void) ret;
     return 0;
 }
 
 int as_define_stack(struct addrspace *as, vaddr_t *stackptr) {
     //assert(as->segments[AS_NUM_SEG - 1].active);
-
     /* Initial user-level stack pointer */
     // *stackptr = as->segments[AS_NUM_SEG - 1].vbase + as->segments[AS_NUM_SEG - 1].size*PAGE_SIZE;
-
-
     as->segments[AS_NUM_SEG - 1].active = 1;
     as->segments[AS_NUM_SEG - 1].vbase = USERTOP - DUMBVM_STACKPAGES*PAGE_SIZE;
-
-    //TODO: Remove
-    as->segments[AS_NUM_SEG - 1].pbase = 0;
     as->segments[AS_NUM_SEG - 1].size = DUMBVM_STACKPAGES;
     as->segments[AS_NUM_SEG - 1].writeable = 1;
     as->segments[AS_NUM_SEG - 1].p_offset = 0;
     as->segments[AS_NUM_SEG - 1].p_filesz = 0;
     as->segments[AS_NUM_SEG - 1].p_memsz = 0;
     as->segments[AS_NUM_SEG - 1].p_flags = 0;
-
     //DEBUG(DB_ELF, "\t SEG: %d vbase: 0x%x  \n", 2, as->segments[2].vbase);
     //DEBUG(DB_ELF, "\t SEG: %d size: %d \n", 2, as->segments[2].size);
     //DEBUG(DB_ELF, "\t SEG: %d writeable: %d \n", as->num_segments, flags & PF_W);
@@ -331,24 +241,13 @@ int as_define_stack(struct addrspace *as, vaddr_t *stackptr) {
     //DEBUG(DB_ELF, "\t SEG: %d p_memsz: %d \n", as->num_segments, memsz);
     //DEBUG(DB_ELF, "\t SEG: %d p_filesz: %d \n", 2, as->segments[2].p_filesz);
     //DEBUG(DB_ELF, "\t SEG: %d p_flags: %d \n", as->num_segments, flags & PF_X);
-
-
-    //TODO: remove
-    assert(as->segments[AS_NUM_SEG - 1].pbase == 0);
-    as->segments[AS_NUM_SEG - 1].pbase = getppages(as->segments[AS_NUM_SEG - 1].size);
-    if (as->segments[AS_NUM_SEG - 1].pbase == 0) {
-        return ENOMEM;
-    }
-
-
     //DEBUG(DB_ELF, "ELF: pbase: %x\n", as->segments[AS_NUM_SEG - 1].pbase);
-
     *stackptr = USERTOP;
+    as->pt = pt_create(as->segments);
     return 0;
 }
 
 struct segment * as_get_segment(struct addrspace * as, vaddr_t v) {
-
     int i = 0;
     for (i = 0; i < AS_NUM_SEG; i++) {
         if (v >= as->segments[i].vbase && v < as->segments[i].vbase + as->segments[i].size * PAGE_SIZE) {
@@ -359,12 +258,10 @@ struct segment * as_get_segment(struct addrspace * as, vaddr_t v) {
 }
 
 int as_valid_read_addr(struct addrspace *as, vaddr_t *check_addr) {
-
     int i = 0;
     if (!(check_addr < (vaddr_t *) USERTOP)) {
         return 0;
     }
-
     for (i = 0; i < AS_NUM_SEG; i++) {
         if (as->segments[i].active) {
             if ((check_addr >= (vaddr_t *) as->segments[i].vbase) && (check_addr < (vaddr_t *) as->segments[i].vbase + PAGE_SIZE * as->segments[i].size)) {
@@ -377,12 +274,10 @@ int as_valid_read_addr(struct addrspace *as, vaddr_t *check_addr) {
 }
 
 int as_valid_write_addr(struct addrspace *as, vaddr_t *check_addr) {
-
     int i = 0;
     if (!(check_addr < (vaddr_t *) USERTOP)) {
         return 0;
     }
-
     for (i = 0; i < AS_NUM_SEG; i++) {
         if (as->segments[i].active) {
             if ((check_addr >= (vaddr_t *) as->segments[i].vbase) && (check_addr < (vaddr_t *) as->segments[i].vbase + PAGE_SIZE * as->segments[i].size)) {

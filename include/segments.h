@@ -8,9 +8,6 @@ struct segment {
 	vaddr_t vbase; /*Base Virtual Address*/
 	size_t size; /*Number of pages*/
 
-	//TODO: Remove
-	paddr_t pbase; /* physical base*/
-
 	int writeable; /* Writeable */
 
 	u_int32_t p_offset; /* Location of data within file */

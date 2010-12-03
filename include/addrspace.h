@@ -10,6 +10,7 @@ struct vnode;
 
 #if OPT_A3
 #include <segments.h>
+#include <pt.h>
 #define AS_NUM_SEG 3
 #endif /* OPT_A3 */
 
@@ -35,7 +36,7 @@ struct addrspace {
 	struct segment segments[AS_NUM_SEG];
 	struct vnode *file;
 	int num_segments;
-
+	struct page_table *pt;
 #endif /* OPT_A3 */
 #endif /* DUMBVM */
 };
@@ -99,7 +100,8 @@ int as_valid_write_addr(struct addrspace *as, vaddr_t *check_addr);
  */
 
 int load_elf(char* progname, vaddr_t *entrypoint);
-int load_segment_page(struct vnode *v, vaddr_t vaddr, struct segment *s);
+int load_segment_page(struct vnode *v, vaddr_t vaddr, struct segment *s, paddr_t paddr);
+paddr_t getppages(unsigned long npages);
 
 #else
 struct addrspace *as_create(void);

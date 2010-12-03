@@ -8,6 +8,14 @@
 
 struct vnode;
 
+#if OPT_A3
+#include <segments.h>
+
+
+#define AS_NUM_SEG 3
+
+#endif /* OPT_A3 */
+
 /* 
  * Address space - data structure associated with the virtual memory
  * space of a process.
@@ -27,13 +35,10 @@ struct addrspace {
 #else
 	/* Put stuff here for your VM system */
 #if OPT_A3
-	vaddr_t as_vbase1;
-	paddr_t as_pbase1;
-	size_t as_npages1;
-	vaddr_t as_vbase2;
-	paddr_t as_pbase2;
-	size_t as_npages2;
-	paddr_t as_stackpbase;
+	struct segment segments[AS_NUM_SEG];
+	struct vnode *file;
+	int num_segments;
+
 #endif /* OPT_A3 */
 #endif /* DUMBVM */
 };
@@ -76,6 +81,7 @@ struct addrspace {
  *    as_valid_write_addr - Check an address for valid user writes
  */
 
+#if OPT_A3
 struct addrspace *as_create(void);
 int as_copy(struct addrspace *src, struct addrspace **ret);
 void as_activate(struct addrspace *);
@@ -89,6 +95,21 @@ int as_define_region(struct addrspace *as,
 int as_prepare_load(struct addrspace *as);
 int as_complete_load(struct addrspace *as);
 int as_define_stack(struct addrspace *as, vaddr_t *initstackptr);
+#else
+struct addrspace *as_create(void);
+int as_copy(struct addrspace *src, struct addrspace **ret);
+void as_activate(struct addrspace *);
+void as_destroy(struct addrspace *);
+
+int as_define_region(struct addrspace *as,
+	vaddr_t vaddr, size_t sz,
+	int readable,
+	int writeable,
+	int executable);
+int as_prepare_load(struct addrspace *as);
+int as_complete_load(struct addrspace *as);
+int as_define_stack(struct addrspace *as, vaddr_t *initstackptr);
+#endif /* OPT_A3 */
 
 #if OPT_A2
 int as_valid_read_addr(struct addrspace *as, vaddr_t *check_addr);

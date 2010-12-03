@@ -51,10 +51,9 @@ int load_segment_page(struct vnode *v, vaddr_t vaddr, struct segment *s, paddr_t
     }
 
     DEBUG(DB_EXEC, "ELF: Loading to 0x%lx\n", (unsigned long) vaddr);
-    DEBUG(DB_ELF, "E4444444443333LF: Loading to %x\n", paddr);
+    DEBUG(DB_ELF, "ELF: Loading to %x\n", paddr);
 
     int read_size = 0;
-
 
     u.uio_iovec.iov_kbase = (void *) PADDR_TO_KVADDR(paddr);
     u.uio_iovec.iov_len = PAGE_SIZE; // length of the memory space
@@ -64,8 +63,6 @@ int load_segment_page(struct vnode *v, vaddr_t vaddr, struct segment *s, paddr_t
     u.uio_rw = UIO_READ;
     // u.uio_space = curthread->t_vmspace;
     u.uio_space = NULL;
-
-
 
     if ((vaddr - s->vbase) < s->p_filesz) {
 
@@ -220,21 +217,6 @@ int load_elf(char * progname, vaddr_t *entrypoint) {
         if (result) {
             return result;
         }
-    }
-
-    result = as_prepare_load(curthread->t_vmspace);
-    if (result) {
-        return result;
-    }
-
-    /*
-     * Now actually load each segment.
-     */
-
-
-    result = as_complete_load(curthread->t_vmspace);
-    if (result) {
-        return result;
     }
 
     *entrypoint = eh.e_entry;

@@ -36,7 +36,6 @@ struct addrspace {
 	struct segment segments[AS_NUM_SEG];
 	struct vnode *file;
 	int num_segments;
-	struct page_table *pt;
 #endif /* OPT_A3 */
 #endif /* DUMBVM */
 };

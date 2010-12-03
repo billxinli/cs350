@@ -9,7 +9,9 @@ struct segment {
 	size_t size; /*Number of pages*/
 
 	int writeable; /* Writeable */
-
+	
+	struct page_table * pt;
+	
 	u_int32_t p_offset; /* Location of data within file */
 	u_int32_t p_filesz; /* Size of data within file */
 	u_int32_t p_memsz; /* Size of data to be loaded into memory*/

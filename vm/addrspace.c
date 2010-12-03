@@ -106,12 +106,11 @@ int vm_fault(int faulttype, vaddr_t faultaddress) {
     }
 
     struct segment * s = as_get_segment(as, faultaddress);
-    paddr = pt_get_paddr(as, faultaddress, s);
+    assert(s != NULL);
+    paddr = pt_get_paddr(faultaddress, s);
 
     _vmstats_inc(VMSTAT_TLB_FAULT);
-
     int writeable;
-
     writeable = s->writeable;
 
     DEBUG(DB_ELF, "TLB ADDING ENTRY: %x -> %x\n", faultaddress, paddr);
@@ -138,6 +137,7 @@ struct addrspace * as_create(void) {
         as->segments[i].vbase = 0;
         as->segments[i].size = 0;
         as->segments[i].writeable = 0;
+        as->segments[i].pt = NULL;
         as->segments[i].p_offset = 0;
         as->segments[i].p_filesz = 0;
         as->segments[i].p_memsz = 0;
@@ -145,7 +145,6 @@ struct addrspace * as_create(void) {
 
     }
 
-    as->pt = NULL;
     as->file = NULL;
     as->num_segments = 0;
     return as;
@@ -157,7 +156,7 @@ void as_destroy(struct addrspace *as) {
 
 void as_activate(struct addrspace *as) {
     (void) as;
-    // tlb_context_switch();
+    tlb_context_switch();
 }
 
 int as_define_region(struct addrspace *as, vaddr_t vaddr, size_t sz, int flags, u_int32_t offset, u_int32_t filesz) {
@@ -184,13 +183,9 @@ int as_define_region(struct addrspace *as, vaddr_t vaddr, size_t sz, int flags, 
         as->segments[as->num_segments].p_memsz = memsz;
         as->segments[as->num_segments].p_filesz = filesz;
         as->segments[as->num_segments].p_flags = flags & PF_X;
-        //DEBUG(DB_ELF, "\t SEG: %d vbase: 0x%x  \n", as->num_segments, as->segments[as->num_segments].vbase);
-        //DEBUG(DB_ELF, "\t SEG: %d size: %d \n", as->num_segments, npages);
-        //DEBUG(DB_ELF, "\t SEG: %d writeable: %d \n", as->num_segments, flags & PF_W);
-        //DEBUG(DB_ELF, "\t SEG: %d p_offset: %d \n", as->num_segments, offset);
-        //DEBUG(DB_ELF, "\t SEG: %d p_memsz: %d \n", as->num_segments, memsz);
-        //DEBUG(DB_ELF, "\t SEG: %d p_filesz: %d \n", as->num_segments, filesz);
-        //DEBUG(DB_ELF, "\t SEG: %d p_flags: %d \n", as->num_segments, flags & PF_X);
+        //create a page table
+        as->segments[as->num_segments].pt = pt_create(&(as->segments[as->num_segments]));
+        assert(as->segments[as->num_segments].pt != NULL);
         as->num_segments++;
         return 0;
     } else {
@@ -234,23 +229,15 @@ int as_define_stack(struct addrspace *as, vaddr_t *stackptr) {
     as->segments[AS_NUM_SEG - 1].p_filesz = 0;
     as->segments[AS_NUM_SEG - 1].p_memsz = 0;
     as->segments[AS_NUM_SEG - 1].p_flags = 0;
-    //DEBUG(DB_ELF, "\t SEG: %d vbase: 0x%x  \n", 2, as->segments[2].vbase);
-    //DEBUG(DB_ELF, "\t SEG: %d size: %d \n", 2, as->segments[2].size);
-    //DEBUG(DB_ELF, "\t SEG: %d writeable: %d \n", as->num_segments, flags & PF_W);
-    //DEBUG(DB_ELF, "\t SEG: %d p_offset: %d \n", 2, as->segments[2].p_offset);
-    //DEBUG(DB_ELF, "\t SEG: %d p_memsz: %d \n", as->num_segments, memsz);
-    //DEBUG(DB_ELF, "\t SEG: %d p_filesz: %d \n", 2, as->segments[2].p_filesz);
-    //DEBUG(DB_ELF, "\t SEG: %d p_flags: %d \n", as->num_segments, flags & PF_X);
-    //DEBUG(DB_ELF, "ELF: pbase: %x\n", as->segments[AS_NUM_SEG - 1].pbase);
+    as->segments[AS_NUM_SEG - 1].pt = pt_create(&(as->segments[AS_NUM_SEG - 1]));
     *stackptr = USERTOP;
-    as->pt = pt_create(as->segments);
     return 0;
 }
 
 struct segment * as_get_segment(struct addrspace * as, vaddr_t v) {
     int i = 0;
     for (i = 0; i < AS_NUM_SEG; i++) {
-        if (v >= as->segments[i].vbase && v < as->segments[i].vbase + as->segments[i].size * PAGE_SIZE) {
+        if (as->segments[i].active == 1 && v >= as->segments[i].vbase && v < as->segments[i].vbase + as->segments[i].size * PAGE_SIZE) {
             return &as->segments[i];
         }
     }

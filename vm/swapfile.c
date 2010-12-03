@@ -47,7 +47,9 @@ void swap_bootstrap() {
         freePages[i].next = &freePages[i + 1];
     }
     freePages[SWAP_PAGES - 1].next = NULL; //fix the last element's next pointer
-    vfs_open("/SWAPFILE", O_RDWR | O_CREAT, &swapfile);
+    char *path = kstrdup("/SWAPFILE");
+    vfs_open(path, O_RDWR | O_CREAT, &swapfile);
+    kfree(path);
 }
 
 /*
@@ -112,7 +114,7 @@ void swap_read(int phys_frame_num, swap_index_t n) {
     if (curspl == 0) {
         lock_acquire(swapLock);
     }
-    void *write_addr = PADDR_TO_KVADDR(phys_frame_num * PAGE_SIZE);
+    void *write_addr = (void *) PADDR_TO_KVADDR(phys_frame_num * PAGE_SIZE);
     struct uio *u = kmalloc(sizeof (struct uio));
     mk_kuio(u, write_addr, PAGE_SIZE, (int) n * PAGE_SIZE, UIO_READ);
     VOP_READ(swapfile, u);

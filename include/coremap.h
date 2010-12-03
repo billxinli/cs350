@@ -41,6 +41,8 @@ void cm_free_core(struct cm_detail *cd, int spl);
 //called after we have copied memory to our frame, tlb add should be called before
 void cm_finish_paging(int frame, struct page_detail* pd);
 
+int cm_push_to_swap();
+
 vaddr_t cm_request_kframes(int num);
 
 void cm_release_kframes(int frame_number);

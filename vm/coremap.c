@@ -15,6 +15,7 @@
 #include <coremap.h>
 #include <pt.h>
 #include <vm_tlb.h>
+#include <swapfile.h>
 
 
 struct cm core_map;
@@ -248,7 +249,7 @@ void cm_release_frame(int frame_number) {
 }
 
 void cm_release_kframes(int frame_number) {
-    assert(core_map.core_deatils[i].kern);
+    assert(core_map.core_details[frame_number].kern);
     int num = core_map.core_details[frame_number].kern;
     assert(num > 0);
     int i;

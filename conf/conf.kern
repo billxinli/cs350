@@ -404,6 +404,7 @@ file	vm/vm_tlb.c
 file	vm/vmstats.c
 file	vm/pt.c
 file    vm/coremap.c
+file    vm/swapfile.c
 
 optofffile dumbvm   vm/addrspace.c
 

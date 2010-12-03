@@ -153,7 +153,24 @@ struct addrspace * as_create(void) {
 }
 
 void as_destroy(struct addrspace *as) {
+    as_free_segments(as);
     kfree(as);
+}
+
+void as_free_segments(struct addrspace *as){
+    assert(as != NULL);
+    int i;
+    for(i=0;i < AS_NUM_SEG; i++){
+        if(as->segments[i].active){
+            if(as->segments[i].pt != NULL){
+                //free each physical frame
+                //TODO:FREE THE FRAMES HERE
+                
+                //destroy the page table
+                pt_destroy(as->segments[i].pt);
+            }
+        }
+    }
 }
 
 void as_activate(struct addrspace *as) {

@@ -76,7 +76,6 @@ void pt_destroy(struct page_table * pt) {
         if (pt->page_details != NULL) {
             kfree(pt->page_details);
         }
-
         kfree(pt);
     }
 }

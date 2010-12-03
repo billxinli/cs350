@@ -20,6 +20,8 @@
 /* under dumbvm, always have 48k of user stack */
 #define DUMBVM_STACKPAGES    12
 
+struct addrspace* last_addrspace = NULL;
+
 void vm_bootstrap(void) {
     vmstats_init();
 }
@@ -155,8 +157,10 @@ void as_destroy(struct addrspace *as) {
 }
 
 void as_activate(struct addrspace *as) {
-    (void) as;
-    tlb_context_switch();
+    if(last_addrspace != NULL && last_addrspace != as){
+        tlb_context_switch();
+    }
+    last_addrspace = as;
 }
 
 int as_define_region(struct addrspace *as, vaddr_t vaddr, size_t sz, int flags, u_int32_t offset, u_int32_t filesz) {

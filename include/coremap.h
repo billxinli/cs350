@@ -9,7 +9,6 @@ struct cm_detail;
 
 struct cm_detail {
         int id;
-        int vpn; //virtual page num
         int kern; //indicate the page is a kernel page
         struct page_detail *pd; //program owning page
         struct cm_detail *next_free;
@@ -27,14 +26,26 @@ struct cm {
         struct cm_detail *free_frame_list;
 };
 
+//Called to set up the core map
 void cm_bootstrap();
-int cm_request_frame();
+
+//get the physical frame to copy our memory to
+int cm_getppage();
+
+//call to release a physical frame back into memory on program exit
 void cm_release_frame(int frame_number);
-void cm_free_core(struct cm_detail *cd, struct page_detail * pd, int spl);
+
+//called by push to swap to get a frame ready for memory copy
+void cm_free_core(struct cm_detail *cd, int spl);
+
+//called after we have copied memory to our frame, tlb add should be called before
+void cm_finish_paging(int frame, struct page_detail* pd);
+
 vaddr_t cm_request_kframes(int num);
-void cm_done_request(int frame);
+
 void cm_release_kframes(int frame_number);
-void cm_finish_paging(int frame, struct thread * t, int vpn);
+
+
 
 #endif
 #endif

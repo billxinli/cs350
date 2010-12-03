@@ -28,7 +28,7 @@ struct page_table {
 
 struct page_table* pt_create(struct segment *segments);
 
-paddr_t pt_get_paddr(vaddr_t vaddr, struct segment *s);
+void pt_page_in(vaddr_t vaddr, struct segment *s);
 void pt_destroy(struct page_table *pt);
 
 #endif

@@ -50,24 +50,39 @@ struct page_table* pt_create(struct segment* seg) {
     return pt;
 }
 
-paddr_t pt_get_paddr(vaddr_t vaddr, struct segment *s) {
+void pt_page_in(vaddr_t vaddr, struct segment *s) {
+    int spl = splhigh();
+    _vmstats_inc(VMSTAT_TLB_FAULT);
+    
     //get the page detail
     int pt_offset_id = (vaddr - s->vbase) / PAGE_SIZE;
     struct page_detail *pd = &(s->pt->page_details[pt_offset_id]);
     if (pd->valid && pd->pfn != -1){
         pd->use = 1;
-        int spl = splhigh();
         _vmstats_inc(VMSTAT_TLB_RELOAD);
+        tlb_add_entry(vaddr, pd->pfn*PAGE_SIZE, s->writeable, 1); 
         splx(spl);
-    }else{
-        paddr_t paddr = getppages(1);
-        pd->pfn = paddr / PAGE_SIZE;
-        pd->sfn = -1;
+        return;
+    }else if(pd->sfn != -1){
+        splx(spl);
         pd->use = 1;
-        load_segment_page(curthread->t_vmspace->file, vaddr, s, paddr);
-        pd->valid = 1;
+        pd->pfn = cm_getppage();
+        swap_read(pd->pfn,pd->sfn);
+        pd->sfn = -1;
+        //add the tlb entry
+        tlb_add_entry(vaddr, pd->pfn*PAGE_SIZE, s->writeable, 1);
+        //finish the load
+        cm_finish_paging(pd->pfn, pd);
+    }else{
+        splx(spl);
+        pd->use = 1;
+        pd->pfn = cm_getppage();
+        load_segment_page(curthread->t_vmspace->file, vaddr, s, pd->pfn*PAGE_SIZE);
+        //add the tlb entry
+        tlb_add_entry(vaddr, pd->pfn*PAGE_SIZE, s->writeable, 1);
+        //finish the load
+        cm_finish_paging(pd->pfn, pd);
     }
-    return pd->pfn*PAGE_SIZE;  
 }
 
 void pt_destroy(struct page_table * pt) {

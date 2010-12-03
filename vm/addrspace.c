@@ -61,7 +61,6 @@ void free_kpages(vaddr_t addr) {
 }
 
 int vm_fault(int faulttype, vaddr_t faultaddress) {
-    paddr_t paddr;
     struct addrspace *as;
     int spl;
 
@@ -109,16 +108,10 @@ int vm_fault(int faulttype, vaddr_t faultaddress) {
 
     struct segment * s = as_get_segment(as, faultaddress);
     assert(s != NULL);
-    paddr = pt_get_paddr(faultaddress, s);
-
-    _vmstats_inc(VMSTAT_TLB_FAULT);
-    int writeable;
-    writeable = s->writeable;
-
-    DEBUG(DB_ELF, "TLB ADDING ENTRY: %x -> %x\n", faultaddress, paddr);
-    tlb_add_entry(faultaddress, paddr, writeable, 1);
-
+    
+    //we can enable interuppts at this point since we will take care of synch
     splx(spl);
+    pt_page_in(faultaddress, s);
     return 0;
 }
 
@@ -164,8 +157,10 @@ void as_free_segments(struct addrspace *as){
         if(as->segments[i].active){
             if(as->segments[i].pt != NULL){
                 //free each physical frame
-                //TODO:FREE THE FRAMES HERE
-                
+                int j;
+                for(j = 0; j < as->segments[i].pt->size; j++){
+                    cm_release_frame(as->segments[i].pt->page_details[j].pfn);
+                }
                 //destroy the page table
                 pt_destroy(as->segments[i].pt);
             }

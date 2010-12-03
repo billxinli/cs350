@@ -403,6 +403,7 @@ file      userprog/fork.c
 file	vm/vm_tlb.c
 file	vm/vmstats.c
 file	vm/pt.c
+file    vm/coremap.c
 
 optofffile dumbvm   vm/addrspace.c
 

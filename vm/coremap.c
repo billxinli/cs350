@@ -32,7 +32,7 @@ void cm_bootstrap() {
     ram_getsize(&low, &high);
     assert(high != 0); //if this assertion fails, ram_getsize has been called before
 
-    core_map.lowest_frame = (low / PAGE_SIZE);
+    core_map.lowest_frame = low & PAGE_FRAME;
 
     //set the free list to the first frame
     core_map.free_frame_list = &(core_map.core_details[core_map.lowest_frame]);
@@ -40,14 +40,13 @@ void cm_bootstrap() {
     int i;
     for (i = core_map.size - 1; i >= core_map.lowest_frame; i--) {
         core_map.core_details[i].id = i;
-        core_map.core_details[i].vpn = -1;
         core_map.core_details[i].kern = 0;
-        core_map.core_details[i].program = NULL;
+        core_map.core_details[i].pd = NULL;
         core_map.core_details[i].next_free = &(core_map.core_details[i - 1]);
         core_map.core_details[i].prev_free = &(core_map.core_details[i + 1]);
         core_map.core_details[i].free = 1;
     }
-    core_map.core_details[0].next_free = NULL; //fix the last entry
+    core_map.core_details[core_map.lowest_frame].next_free = NULL; //fix the last entry
     core_map.core_details[core_map.size - 1].prev_free = NULL; //fix the first entry
 }
 
@@ -64,6 +63,7 @@ void free_list_add(struct cm_detail *new) {
         core_map.free_frame_list = new;
     }
     new->free = 1;
+    new->kern = 0;
     splx(spl);
 }
 
@@ -93,57 +93,55 @@ int clock_to_index(int c) {
     return (c + core_map.lowest_frame);
 }
 
+int cm_getppage(){
+    int spl = splhigh();    
+    struct cm_detail *frame = free_list_pop();
+    if (frame == NULL) {
+        /*
+        if no free pages are available, we need to push a frame into
+        swap to make room for a new frame in RAM
+         */
+        splx(spl);
+        return cm_push_to_swap();
+    } else {
+        //there is a free page, so return it's index
+        splx(spl);
+        return frame->id;
+    }
+}
+
 int cm_push_to_swap() {
     int spl = splhigh();
     int i = 0;
 
-
     for (i = core_map.lowest_frame; i < core_map.size; i++) {
-
         struct cm_detail *cd = &core_map.core_details[clock_to_index(core_map.clock_pointer)];
-        if (cd->kern == 1) {
-            struct page_detail * pd = pt_getpdetails(cd->vpn, cd->program);
-
+        if (cd->kern == 0) {
+            struct page_detail * pd = cd->pd;
             if (pd == NULL) {
-                panic("Page table missing details for VPN: %d\n", cd->vpn);
-            }
-            if (pd->use == 0 && pd->modified == 0) {
-                cm_free_core(cd, pd, spl);
-                return cd->id;
-            }
-        }
-        core_map.clock_pointer = (core_map.clock_pointer + 1) % (core_map.size - core_map.lowest_frame);
-
-    }
-    for (i = core_map.lowest_frame; i < core_map.size; i++) {
-
-        struct cm_detail *cd = &core_map.core_details[clock_to_index(core_map.clock_pointer)];
-        if (cd->kern == 1) {
-            struct page_detail * pd = pt_getpdetails(cd->vpn, cd->program);
-            if (pd == NULL) {
-                panic("Page table missing details for VPN: %d\n", cd->vpn);
+                panic("FREE PHYSICAL FRAMES NOT IN THE FREE LIST");
             }
             if (pd->use == 0) {
-                cm_free_core(cd, pd, spl);
+                //interupts are re-enabled in free core
+                cm_free_core(cd, spl);
                 return cd->id;
             } else {
                 pd->use = 0;
-                tlb_invalidate_vaddr(pd->vpn);
+                tlb_invalidate_vaddr(pd->vaddr);
             }
         }
         core_map.clock_pointer = (core_map.clock_pointer + 1) % (core_map.size - core_map.lowest_frame);
     }
     for (i = core_map.lowest_frame; i < core_map.size; i++) {
-
-
         struct cm_detail *cd = &core_map.core_details[clock_to_index(core_map.clock_pointer)];
         if (cd->kern == 1) {
-            struct page_detail * pd = pt_getpdetails(cd->vpn, cd->program);
+            struct page_detail * pd = cd->pd;
 
             if (pd == NULL) {
-                panic("Page table missing details for VPN: %d\n", cd->vpn);
+                panic("FREE PHYSICAL FRAMES NOT IN THE FREE LIST");
             }
-            cm_free_core(cd, pd, spl);
+            //interupts are re-enabled in free core
+            cm_free_core(cd, spl);
             return cd->id;
 
         }
@@ -155,50 +153,42 @@ int cm_push_to_swap() {
     return 0;
 }
 
-void cm_finish_paging(int frame, struct thread * t, int vpn) {
-    core_map.core_details[frame].kern = 0;
+void cm_finish_paging(int frame, struct page_detail* pd) {
+    core_map.core_details[frame].pd = pd;
+    pd->pfn = frame;
+    pd->valid = 1;
+    
     core_map.core_details[frame].free = 0;
-
-    core_map.core_details[frame].vpn = vpn;
-    core_map.core_details[frame].program = t;
-
-
+    core_map.core_details[frame].kern = 0;
 }
 
-void cm_free_core(struct cm_detail *cd, struct page_detail * pd, int spl) {
-
-    //TODO: invalidate the TLB
-
-    pd->valid = 0;
+void cm_free_core(struct cm_detail *cd, int spl) {
+    //invalidate the TLB
+    tlb_invalidate_vaddr(cd->pd->vaddr);
+    
+    //invalidate the page table entry
+    cd->pd->valid = 0;
+    cd->pd->use = 0;
+    
+    //set the core to kernel so it wont be messed with
     cd->kern = 1;
+    
+    //save to enable interuppts since page is kernel
     splx(spl);
-    if (pd->modified) {
-        pd->sfn = swap_write(cd->id);
-    } else {
-        pd->sfn = -1;
+    
+    //only write to swap if its a dirty page
+    if (cd->pd->dirty) {
+        cd->pd->sfn = swap_write(cd->id);
+    }else{
+        cd->pd->sfn = -1;
     }
-
-    cd->vpn = -1;
-    cd->program = NULL;
+    //set the page to not in physical memory
+    cd->pd->pfn = -1;
+    
+    //set the cores page detail to null
+    cd->pd = NULL;
+    
     cd->next_free = NULL;
-}
-
-int cm_request_frame() {
-    struct cm_detail *frame = free_list_pop();
-    if (frame == NULL) {
-        /*
-        if no free pages are available, we need to push a frame into
-        swap to make room for a new frame in RAM
-         */
-        return cm_push_to_swap();
-    } else {
-        //there is a free page, so return it's index
-        return (((int) frame - (int) core_map.core_details) / sizeof (struct cm_detail));
-    }
-}
-
-int kalloced(struct cm_detail *frame) {
-    return (frame->kern && frame->free == 0);
 }
 
 vaddr_t cm_request_kframes(int num) {
@@ -269,11 +259,5 @@ void cm_release_kframes(int frame_number) {
         cm_release_frame(i);
     }
 }
-//call this after cm_request_frame (but not after cm_request_kframe)
-
-void cm_done_request(int frame) {
-    core_map.core_details[frame].kern = 0;
-}
-
 #endif /* OPT_A3 */
   

@@ -3,7 +3,7 @@
  *
  * Right now it just copies into userspace and hopes the addresses are
  * mappable to real memory. This works with dumbvm; however, when you
- * write a real VM system, you will need to either (1) add code that 
+ * write a real VM system, you will need to either (1) add code that
  * makes the address range used for load valid, or (2) if you implement
  * memory-mapped files, map each segment instead of copying it into RAM.
  */
@@ -21,6 +21,11 @@
 
 #if OPT_A3
 
+#include <machine/spl.h>
+#include <kern/unistd.h>
+#include <vfs.h>
+#include <vmstats.h>
+
 /*
  * Load a segment at virtual address VADDR. The segment in memory
  * extends from VADDR up to (but not including) VADDR+MEMSIZE. The
@@ -35,45 +40,75 @@
  * change this code to not use uiomove, be sure to check for this case
  * explicitly.
  */
-static int load_segment(struct vnode *v, off_t offset, vaddr_t vaddr, size_t memsize, size_t filesize, int is_executable) {
+
+int load_segment_page(struct vnode *v, vaddr_t vaddr, struct segment *s) {
     struct uio u;
     int result;
     size_t fillamt;
 
-    if (filesize > memsize) {
+    if (s->p_filesz > s->size * PAGE_SIZE) {
         kprintf("ELF: warning: segment filesize > segment memsize\n");
-        filesize = memsize;
     }
 
-    DEBUG(DB_EXEC, "ELF: Loading %lu bytes to 0x%lx\n", (unsigned long) filesize, (unsigned long) vaddr);
+    DEBUG(DB_EXEC, "ELF: Loading to 0x%lx\n", (unsigned long) vaddr);
 
-    u.uio_iovec.iov_ubase = (userptr_t) vaddr;
-    u.uio_iovec.iov_len = memsize; // length of the memory space
-    u.uio_resid = filesize; // amount to actually read
-    u.uio_offset = offset;
-    u.uio_segflg = is_executable ? UIO_USERISPACE : UIO_USERSPACE;
+    int read_size = 0;
+
+    //TODO: remove
+    paddr_t paddr = ((vaddr - s->vbase) + s->pbase) & PAGE_FRAME;
+    u.uio_iovec.iov_kbase = (void *) PADDR_TO_KVADDR(paddr);
+    u.uio_iovec.iov_len = PAGE_SIZE; // length of the memory space
+    u.uio_offset = vaddr - s->vbase + s->p_offset;
+    u.uio_segflg = UIO_SYSSPACE;
+    //u.uio_segflg = s->p_flags ? UIO_USERISPACE : UIO_USERSPACE;
     u.uio_rw = UIO_READ;
-    u.uio_space = curthread->t_vmspace;
+    // u.uio_space = curthread->t_vmspace;
+    u.uio_space = NULL;
 
-    result = VOP_READ(v, &u);
-    if (result) {
-        return result;
-    }
 
-    if (u.uio_resid != 0) {
-        /* short read; problem with executable? */
-        kprintf("ELF: short read on segment - file truncated?\n");
-        return ENOEXEC;
+
+    if ((vaddr - s->vbase) < s->p_filesz) {
+
+        if (s->vbase + s->p_filesz >= vaddr + PAGE_SIZE) {
+            read_size = PAGE_SIZE;
+        } else {
+            read_size = s->vbase + s->p_filesz - vaddr;
+        }
+
+        u.uio_resid = read_size; // amount to actually read
+
+        result = VOP_READ(v, &u);
+        if (result) {
+            return result;
+        }
+
+        if (u.uio_resid != 0) {
+            /* short read; problem with executable? */
+            kprintf("ELF: short read on segment - file truncated?\n");
+            return ENOEXEC;
+        }
+
+        int spl = splhigh();
+        _vmstats_inc(VMSTAT_ELF_FILE_READ);
+        _vmstats_inc(VMSTAT_PAGE_FAULT_DISK);
+        splx(spl);
+    } else {
+
+        read_size = 0;
+
+        int spl = splhigh();
+        _vmstats_inc(VMSTAT_PAGE_FAULT_ZERO);
+        splx(spl);
+
     }
 
     /* Fill the rest of the memory space (if any) with zeros */
-    fillamt = memsize - filesize;
+    fillamt = PAGE_SIZE - read_size;
     if (fillamt > 0) {
         DEBUG(DB_EXEC, "ELF: Zero-filling %lu more bytes\n", (unsigned long) fillamt);
         u.uio_resid += fillamt;
         result = uiomovezeros(fillamt, &u);
     }
-
     return result;
 }
 
@@ -82,12 +117,20 @@ static int load_segment(struct vnode *v, off_t offset, vaddr_t vaddr, size_t mem
  *
  * Returns the entry point (initial PC) for the program in ENTRYPOINT.
  */
-int load_elf(struct vnode *v, vaddr_t *entrypoint) {
+int load_elf(char * progname, vaddr_t *entrypoint) {
     Elf_Ehdr eh; /* Executable header */
     Elf_Phdr ph; /* "Program header" = segment header */
     int result, i;
     struct uio ku;
+    struct vnode *v;
 
+    /* Open the file. */
+    result = vfs_open(progname, O_RDONLY, &v);
+    if (result) {
+        return result;
+    }
+
+    curthread->t_vmspace->file = v;
     /*
      * Read the executable header from offset 0 in the file.
      */
@@ -170,9 +213,10 @@ int load_elf(struct vnode *v, vaddr_t *entrypoint) {
 
         result = as_define_region(curthread->t_vmspace,
                 ph.p_vaddr, ph.p_memsz,
-                ph.p_flags & PF_R,
-                ph.p_flags & PF_W,
-                ph.p_flags & PF_X);
+                ph.p_flags, ph.p_offset, ph.p_filesz);
+
+
+
         if (result) {
             return result;
         }
@@ -187,38 +231,6 @@ int load_elf(struct vnode *v, vaddr_t *entrypoint) {
      * Now actually load each segment.
      */
 
-    for (i = 0; i < eh.e_phnum; i++) {
-        off_t offset = eh.e_phoff + i * eh.e_phentsize;
-        mk_kuio(&ku, &ph, sizeof (ph), offset, UIO_READ);
-
-        result = VOP_READ(v, &ku);
-        if (result) {
-            return result;
-        }
-
-        if (ku.uio_resid != 0) {
-            /* short read; problem with executable? */
-            kprintf("ELF: short read on phdr - file truncated?\n");
-            return ENOEXEC;
-        }
-
-        switch (ph.p_type) {
-            case PT_NULL: /* skip */ continue;
-            case PT_PHDR: /* skip */ continue;
-            case PT_MIPS_REGINFO: /* skip */ continue;
-            case PT_LOAD: break;
-            default:
-                kprintf("loadelf: unknown segment type %d\n", ph.p_type);
-                return ENOEXEC;
-        }
-
-        result = load_segment(v, ph.p_offset, ph.p_vaddr,
-                ph.p_memsz, ph.p_filesz,
-                ph.p_flags & PF_X);
-        if (result) {
-            return result;
-        }
-    }
 
     result = as_complete_load(curthread->t_vmspace);
     if (result) {

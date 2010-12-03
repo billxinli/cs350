@@ -10,10 +10,7 @@ struct vnode;
 
 #if OPT_A3
 #include <segments.h>
-
-
 #define AS_NUM_SEG 3
-
 #endif /* OPT_A3 */
 
 /* 
@@ -86,31 +83,33 @@ struct addrspace *as_create(void);
 int as_copy(struct addrspace *src, struct addrspace **ret);
 void as_activate(struct addrspace *);
 void as_destroy(struct addrspace *);
-
-int as_define_region(struct addrspace *as,
-	vaddr_t vaddr, size_t sz,
-	int readable,
-	int writeable,
-	int executable);
+int as_define_region(struct addrspace *as, vaddr_t vaddr, size_t sz, int flags, u_int32_t offset, u_int32_t filesz);
 int as_prepare_load(struct addrspace *as);
 int as_complete_load(struct addrspace *as);
 int as_define_stack(struct addrspace *as, vaddr_t *initstackptr);
+struct segment * as_get_segment(struct addrspace * as, vaddr_t v);
+int as_valid_read_addr(struct addrspace *as, vaddr_t *check_addr);
+int as_valid_write_addr(struct addrspace *as, vaddr_t *check_addr);
+
+/*
+ * Functions in loadelf.c
+ *    load_elf - load an ELF user program executable into the current
+ *               address space. Returns the entry point (initial PC)
+ *               in the space pointed to by ENTRYPOINT.
+ */
+
+int load_elf(char* progname, vaddr_t *entrypoint);
+int load_segment_page(struct vnode *v, vaddr_t vaddr, struct segment *s);
+
 #else
 struct addrspace *as_create(void);
 int as_copy(struct addrspace *src, struct addrspace **ret);
 void as_activate(struct addrspace *);
 void as_destroy(struct addrspace *);
-
-int as_define_region(struct addrspace *as,
-	vaddr_t vaddr, size_t sz,
-	int readable,
-	int writeable,
-	int executable);
+int as_define_region(struct addrspace *as, vaddr_t vaddr, size_t sz, int readable, int writeable, int executable);
 int as_prepare_load(struct addrspace *as);
 int as_complete_load(struct addrspace *as);
 int as_define_stack(struct addrspace *as, vaddr_t *initstackptr);
-#endif /* OPT_A3 */
-
 #if OPT_A2
 int as_valid_read_addr(struct addrspace *as, vaddr_t *check_addr);
 int as_valid_write_addr(struct addrspace *as, vaddr_t *check_addr);
@@ -124,6 +123,17 @@ int as_valid_write_addr(struct addrspace *as, vaddr_t *check_addr);
  */
 
 int load_elf(struct vnode *v, vaddr_t *entrypoint);
+#endif /* OPT_A3 */
+
+
+
+
+
+
+
+
+
+
 
 
 #endif /* _ADDRSPACE_H_ */

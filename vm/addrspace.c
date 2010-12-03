@@ -16,6 +16,7 @@
 #include <machine/spl.h>
 #include <machine/tlb.h>
 
+#include <elf.h>
 /* under dumbvm, always have 48k of user stack */
 #define DUMBVM_STACKPAGES    12
 
@@ -60,27 +61,11 @@ void free_kpages(vaddr_t addr) {
 int vm_fault(int faulttype, vaddr_t faultaddress) {
     paddr_t paddr;
     struct addrspace *as;
-    int i, spl;
+    int spl;
 
     spl = splhigh();
 
     faultaddress &= PAGE_FRAME;
-
-    DEBUG(DB_VM, "dumbvm: fault: 0x%x\n", faultaddress);
-
-    switch (faulttype) {
-        case VM_FAULT_READONLY:
-            /* We always create pages read-write, so we can't get this */
-            panic("dumbvm: got VM_FAULT_READONLY\n");
-        case VM_FAULT_READ:
-        case VM_FAULT_WRITE:
-
-            _vmstats_inc(VMSTAT_TLB_FAULT);
-            break;
-        default:
-            splx(spl);
-            return EINVAL;
-    }
 
     as = curthread->t_vmspace;
     if (as == NULL) {
@@ -92,29 +77,49 @@ int vm_fault(int faulttype, vaddr_t faultaddress) {
         return EFAULT;
     }
 
+    switch (faulttype) {
+        case VM_FAULT_READONLY:
+            /* We always create pages read-write, so we can't get this */
+
+            DEBUG(DB_ELF, "ELF: VM_FAULT_READONLY\n");
+            thread_exit();
+            return EFAULT;
+        case VM_FAULT_WRITE:
+            if (!as_valid_write_addr(as, (void *) faultaddress)) {
+
+                DEBUG(DB_ELF, "ELF: VM_FAULT_WRITE\n");
+                thread_exit();
+                return EFAULT;
+            }
+            break;
+        case VM_FAULT_READ:
+            if (!as_valid_read_addr(as, (void *) faultaddress)) {
+
+                DEBUG(DB_ELF, "ELF: VM_FAULT_READ on %x\n", faultaddress);
+                thread_exit();
+                return EFAULT;
+            }
+            break;
+        default:
+            splx(spl);
+            return EINVAL;
+    }
+
+    struct segment * s = as_get_segment(as, faultaddress);
+    load_segment_page(as->file, faultaddress, s);
+
+    _vmstats_inc(VMSTAT_TLB_FAULT);
+
     int writeable;
 
-    for (i = 0; i < AS_NUM_SEG; i++) {
+    //TODO: pbase
+    paddr = (faultaddress - s->vbase + s->pbase) & PAGE_FRAME;
+    writeable = s->writeable;
 
-        if ((faultaddress >= as->segments[i].vbase) && (faultaddress < as->segments[i].vbase + PAGE_SIZE * as->segments[i].size)) {
-            //TODO: pbase
-            paddr = faultaddress - as->segments[i].vbase + as->segments[i].pbase;
-            writeable = as->segments[i].writeable;
-            break;
-
-        }
-    }
-    if (i >= AS_NUM_SEG) {
-        splx(spl);
-        return EFAULT;
-    }
-
-
+    DEBUG(DB_ELF, "TLB ADDING ENTRY: %x -> %x\n", faultaddress, paddr);
     tlb_add_entry(faultaddress, paddr, writeable, 1);
 
-
     splx(spl);
-
     return 0;
 }
 
@@ -132,9 +137,10 @@ struct addrspace * as_create(void) {
     }
 
     int i;
-    for (i = 0; i < AS_NUM_SEG; i++) {
+    for (i = 0; i < AS_NUM_SEG - 1; i++) {
         as->segments[i].active = 0;
         as->segments[i].vbase = 0;
+
         //TODO: Remove
         as->segments[i].pbase = 0;
         as->segments[i].size = 0;
@@ -145,6 +151,11 @@ struct addrspace * as_create(void) {
         as->segments[i].p_flags = 0;
 
     }
+
+
+
+
+
     as->file = NULL;
     as->num_segments = 0;
     return as;
@@ -160,15 +171,14 @@ void
 as_activate(struct addrspace *as) {
 
 
-    (
-            void) as;
+    (void) as;
 
-    tlb_context_switch();
+    //tlb_context_switch();
 }
 
-int as_define_region(struct addrspace *as, vaddr_t vaddr, size_t sz, int readable, int writeable, int executable) {
+int as_define_region(struct addrspace *as, vaddr_t vaddr, size_t sz, int flags, u_int32_t offset, u_int32_t filesz) {
     size_t npages;
-
+    size_t memsz = sz;
     /* Align the region. First, the base... */
     sz += vaddr & ~(vaddr_t) PAGE_FRAME;
     vaddr &= PAGE_FRAME;
@@ -178,17 +188,30 @@ int as_define_region(struct addrspace *as, vaddr_t vaddr, size_t sz, int readabl
 
     npages = sz / PAGE_SIZE;
 
-    /* We don't use these - all pages are read-write */
-    (void) readable;
-    (void) executable;
+    //DEBUG(DB_ELF, "ELF: Define seg: %d \n", as->num_segments);
 
-    if (as->num_segments < AS_NUM_SEG) {
-
+    if (as->num_segments < AS_NUM_SEG - 1) {
+        assert(as->segments[as->num_segments].active == 0);
         as->segments[as->num_segments].active = 1;
-
         as->segments[as->num_segments].vbase = vaddr;
         as->segments[as->num_segments].size = npages;
-        as->segments[as->num_segments].writeable = writeable;
+        as->segments[as->num_segments].writeable = flags & PF_W;
+        as->segments[as->num_segments].p_offset = offset;
+        as->segments[as->num_segments].p_memsz = memsz;
+        as->segments[as->num_segments].p_filesz = filesz;
+        as->segments[as->num_segments].p_flags = flags & PF_X;
+
+
+        //DEBUG(DB_ELF, "\t SEG: %d vbase: 0x%x  \n", as->num_segments, as->segments[as->num_segments].vbase);
+        //DEBUG(DB_ELF, "\t SEG: %d size: %d \n", as->num_segments, npages);
+        //DEBUG(DB_ELF, "\t SEG: %d writeable: %d \n", as->num_segments, flags & PF_W);
+        //DEBUG(DB_ELF, "\t SEG: %d p_offset: %d \n", as->num_segments, offset);
+        //DEBUG(DB_ELF, "\t SEG: %d p_memsz: %d \n", as->num_segments, memsz);
+        //DEBUG(DB_ELF, "\t SEG: %d p_filesz: %d \n", as->num_segments, filesz);
+        //DEBUG(DB_ELF, "\t SEG: %d p_flags: %d \n", as->num_segments, flags & PF_X);
+
+
+
         as->num_segments++;
         return 0;
     } else {
@@ -206,11 +229,13 @@ int as_define_region(struct addrspace *as, vaddr_t vaddr, size_t sz, int readabl
 
 int as_prepare_load(struct addrspace *as) {
     int i;
-    for (i = 0; i < AS_NUM_SEG; i++) {
+    for (i = 0; i < AS_NUM_SEG - 1; i++) {
         if (as->segments[i].active) {
             //TODO: remove
             assert(as->segments[i].pbase == 0);
             as->segments[i].pbase = getppages(as->segments[i].size);
+
+            //DEBUG(DB_ELF, "ELF: pbase: %x\n", as->segments[i].pbase);
             if (as->segments[i].pbase == 0) {
                 return ENOMEM;
             }
@@ -227,6 +252,8 @@ int as_complete_load(struct addrspace *as) {
 }
 
 int as_copy(struct addrspace *old, struct addrspace **ret) {
+
+    assert(0);
     struct addrspace *new;
 
     new = as_create();
@@ -279,12 +306,56 @@ int as_copy(struct addrspace *old, struct addrspace **ret) {
 }
 
 int as_define_stack(struct addrspace *as, vaddr_t *stackptr) {
-    assert(as->segments[AS_NUM_SEG - 1].active);
+    //assert(as->segments[AS_NUM_SEG - 1].active);
 
     /* Initial user-level stack pointer */
-    *stackptr = as->segments[AS_NUM_SEG - 1].vbase + as->segments[AS_NUM_SEG - 1].size*PAGE_SIZE;
+    // *stackptr = as->segments[AS_NUM_SEG - 1].vbase + as->segments[AS_NUM_SEG - 1].size*PAGE_SIZE;
 
+
+    as->segments[AS_NUM_SEG - 1].active = 1;
+    as->segments[AS_NUM_SEG - 1].vbase = USERTOP - DUMBVM_STACKPAGES*PAGE_SIZE;
+
+    //TODO: Remove
+    as->segments[AS_NUM_SEG - 1].pbase = 0;
+    as->segments[AS_NUM_SEG - 1].size = DUMBVM_STACKPAGES;
+    as->segments[AS_NUM_SEG - 1].writeable = 1;
+    as->segments[AS_NUM_SEG - 1].p_offset = 0;
+    as->segments[AS_NUM_SEG - 1].p_filesz = 0;
+    as->segments[AS_NUM_SEG - 1].p_memsz = 0;
+    as->segments[AS_NUM_SEG - 1].p_flags = 0;
+
+    //DEBUG(DB_ELF, "\t SEG: %d vbase: 0x%x  \n", 2, as->segments[2].vbase);
+    //DEBUG(DB_ELF, "\t SEG: %d size: %d \n", 2, as->segments[2].size);
+    //DEBUG(DB_ELF, "\t SEG: %d writeable: %d \n", as->num_segments, flags & PF_W);
+    //DEBUG(DB_ELF, "\t SEG: %d p_offset: %d \n", 2, as->segments[2].p_offset);
+    //DEBUG(DB_ELF, "\t SEG: %d p_memsz: %d \n", as->num_segments, memsz);
+    //DEBUG(DB_ELF, "\t SEG: %d p_filesz: %d \n", 2, as->segments[2].p_filesz);
+    //DEBUG(DB_ELF, "\t SEG: %d p_flags: %d \n", as->num_segments, flags & PF_X);
+
+
+    //TODO: remove
+    assert(as->segments[AS_NUM_SEG - 1].pbase == 0);
+    as->segments[AS_NUM_SEG - 1].pbase = getppages(as->segments[AS_NUM_SEG - 1].size);
+    if (as->segments[AS_NUM_SEG - 1].pbase == 0) {
+        return ENOMEM;
+    }
+
+
+    //DEBUG(DB_ELF, "ELF: pbase: %x\n", as->segments[AS_NUM_SEG - 1].pbase);
+
+    *stackptr = USERTOP;
     return 0;
+}
+
+struct segment * as_get_segment(struct addrspace * as, vaddr_t v) {
+
+    int i = 0;
+    for (i = 0; i < AS_NUM_SEG; i++) {
+        if (v >= as->segments[i].vbase && v < as->segments[i].vbase + as->segments[i].size * PAGE_SIZE) {
+            return &as->segments[i];
+        }
+    }
+    return NULL;
 }
 
 int as_valid_read_addr(struct addrspace *as, vaddr_t *check_addr) {
@@ -312,7 +383,7 @@ int as_valid_write_addr(struct addrspace *as, vaddr_t *check_addr) {
         return 0;
     }
 
-    for (i = 1; i < AS_NUM_SEG; i++) {
+    for (i = 0; i < AS_NUM_SEG; i++) {
         if (as->segments[i].active) {
             if ((check_addr >= (vaddr_t *) as->segments[i].vbase) && (check_addr < (vaddr_t *) as->segments[i].vbase + PAGE_SIZE * as->segments[i].size)) {
                 return 1;

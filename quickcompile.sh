@@ -33,7 +33,7 @@ while true; do
 			echo done compiling asst${asst}
 			echo =================================================
 			                        cd ~/cs350-os161/root
-                        sys161 kernel "p testbin/badcall"
+                        sys161 kernel "p testbin/add 1 2; q"
                         echo =================================================
                         echo done
                         echo =================================================

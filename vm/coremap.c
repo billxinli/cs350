@@ -26,7 +26,7 @@ void cm_bootstrap() {
     core_map.init = 1;
     core_map.size = mips_ramsize() / PAGE_SIZE;
 
-    core_map.core_details = (struct cm_detail*) ralloc(sizeof (struct cm_detail) * core_map.size);
+    core_map.core_details = (struct cm_detail*) kmalloc(sizeof (struct cm_detail) * core_map.size);
 
     paddr_t low;
     paddr_t high;

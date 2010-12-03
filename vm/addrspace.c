@@ -34,6 +34,7 @@ void vm_shutdown(void) {
 }
 
 paddr_t getppages(unsigned long npages) {
+    assert(0); //We should not be calling this anymore
     int spl;
     paddr_t addr;
 
@@ -47,18 +48,13 @@ paddr_t getppages(unsigned long npages) {
 
 /* Allocate/free some kernel-space virtual pages */
 vaddr_t alloc_kpages(int npages) {
-    paddr_t pa;
-    pa = getppages(npages);
-    if (pa == 0) {
-        return 0;
-    }
-    return PADDR_TO_KVADDR(pa);
+    return cm_request_kframes(npages);
 }
 
 void free_kpages(vaddr_t addr) {
-    /* nothing */
-
-    (void) addr;
+    int paddr = (int) addr - MIPS_KSEG0;
+    assert(paddr % PAGE_SIZE == 0);
+    cm_release_kframes(paddr / PAGE_SIZE);
 }
 
 int vm_fault(int faulttype, vaddr_t faultaddress) {

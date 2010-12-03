@@ -134,7 +134,7 @@ int cm_push_to_swap() {
     }
     for (i = core_map.lowest_frame; i < core_map.size; i++) {
         struct cm_detail *cd = &core_map.core_details[clock_to_index(core_map.clock_pointer)];
-        if (cd->kern == 1) {
+        if (cd->kern == 0) {
             struct page_detail * pd = cd->pd;
 
             if (pd == NULL) {
@@ -193,15 +193,14 @@ void cm_free_core(struct cm_detail *cd, int spl) {
 
 vaddr_t cm_request_kframes(int num) {
     assert(core_map.init); //don't call kmalloc before coremap is setup
-    assert(curspl == 0); //interrupts must be off when calling kmalloc
     int spl = splhigh();
     int frame = -1;
     int i;
     int j;
-    for (i = core_map.lowest_frame; i < core_map.size; i++) {
+    for (i = core_map.lowest_frame; i <= core_map.size - num; i++) {
         frame = i;
         for (j = 0; j < num; j++) {
-            if (kalloced(&core_map.core_details[i + j])) {
+            if (core_map.core_details[i + j].kern) {
                 frame = -1;
                 break;
             }
@@ -211,19 +210,13 @@ vaddr_t cm_request_kframes(int num) {
     if (frame == -1) {
         panic("No space to get %d kernel page(s)!", num);
     }
+    
     /*
     NOTE: Instead of using more memory to store another variable in cm_details,
-    since vpn is unused for kernel pages, we recycle the vpn value so that in the
-    first page of a series of continuous kernel pages, the vpn is the number of
-    pages allocated for the large allocation. This is used to know how many
-    pages to free when we call cm_release_kframes
+    we use kern to also mean the number of continuous pages allocated in a big
+    kmalloc.
      */
-    core_map.core_details[frame].vpn = num;
-    // ///////////////
-    for (i = frame; i < frame + num; i++) {
-        assert(core_map.core_details[i].free || core_map.core_details[i].kern == 0);
-        core_map.core_details[i].kern = 1;
-    }
+    core_map.core_details[frame].kern = num;
 
     for (i = frame; i < frame + num; i++) {
         if (core_map.core_details[i].free) {
@@ -231,12 +224,16 @@ vaddr_t cm_request_kframes(int num) {
                 core_map.free_frame_list->next_free->prev_free = NULL;
                 core_map.free_frame_list = core_map.free_frame_list->next_free;
             } else {
-                core_map.core_details[i].prev_free->next_free = core_map.core_details[i].next_free;
-                core_map.core_details[i].next_free->prev_free = core_map.core_details[i].prev_free;
+                if (core_map.core_details[i].prev_free != NULL) {
+                    core_map.core_details[i].prev_free->next_free = core_map.core_details[i].next_free;
+                }
+                if (core_map.core_details[i].next_free != NULL) {
+                    core_map.core_details[i].next_free->prev_free = core_map.core_details[i].prev_free;
+                }
             }
             core_map.core_details[i].free = 0;
         } else {
-            cm_free_core(&core_map.core_details[i], pt_getpdetails(core_map.core_details[i].vpn, core_map.core_details[i].program), spl);
+            cm_free_core(&core_map.core_details[i], spl);
             spl = splhigh();
         }
 
@@ -251,11 +248,12 @@ void cm_release_frame(int frame_number) {
 }
 
 void cm_release_kframes(int frame_number) {
-    int num = core_map.core_details[frame_number].vpn; //see note above; in kernel pages, it stores the number of linked continuous pages
+    assert(core_map.core_deatils[i].kern);
+    int num = core_map.core_details[frame_number].kern;
     assert(num > 0);
     int i;
     for (i = frame_number; i < frame_number + num; i++) {
-        assert(kalloced(&core_map.core_details[i]));
+        assert(core_map.core_details[i].kern);
         cm_release_frame(i);
     }
 }

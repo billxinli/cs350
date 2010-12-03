@@ -22,6 +22,7 @@
 #if OPT_A3
 #include <vmstats.h>
 #include <vm_tlb.h>
+#include <coremap.h>
 #endif /* OPT_A3 */
 
 /*
@@ -77,14 +78,25 @@ boot(void) {
             GROUP_VERSION, buildconfig, buildversion);
     kprintf("\n");
 
+#if OPT_A3
+    ram_bootstrap();
+    
+    cm_bootstrap();
+    
+    scheduler_bootstrap();
+    thread_bootstrap();
+    vfs_bootstrap();
+    dev_bootstrap();
+    vm_bootstrap();
+
+    tlb_bootstrap();
+#else
     ram_bootstrap();
     scheduler_bootstrap();
     thread_bootstrap();
     vfs_bootstrap();
     dev_bootstrap();
     vm_bootstrap();
-#if OPT_A3
-    tlb_bootstrap();
 #endif /* OPT_A3 */
     kprintf_bootstrap();
 

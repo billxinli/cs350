@@ -166,6 +166,7 @@ void as_free_segments(struct addrspace *as){
             }
         }
     }
+    kfree(as->segments);
 }
 
 void as_activate(struct addrspace *as) {

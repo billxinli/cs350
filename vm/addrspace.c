@@ -149,7 +149,7 @@ void as_destroy(struct addrspace *as) {
     as_free_segments(as);
     
     //close the vnode
-    vfs_close(as->file);
+    vfs_close(as->file); //// <-- This causes a failue in one test
     if(as->file->vn_refcount == 0){
         kfree(as->file);
     }

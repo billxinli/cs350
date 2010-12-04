@@ -74,20 +74,19 @@ int sys_read(int *retval, int fdn, void *buf, size_t nbytes) {
             return EBADF;
     }
     //Make the uio
-    struct uio *u = kmalloc(sizeof (struct uio));
-    mk_kuio(u, (void *) buf, nbytes, fd->offset, UIO_READ);
+    struct uio u;
+    mk_kuio(&u, (void *) buf, nbytes, fd->offset, UIO_READ);
     //Disable interrupt
     //int spl;
     //spl = splhigh();
     //Read
-    int sizeread = VOP_READ(fd->fdvnode, u);
+    int sizeread = VOP_READ(fd->fdvnode, &u);
     //splx(spl);
     if (sizeread) {
         return sizeread;
     }
     //Find the number of bytes read
-    sizeread = nbytes - u->uio_resid;
-    kfree(u);
+    sizeread = nbytes - u.uio_resid;
     *retval = sizeread;
     //Update the offset
     fd->offset += sizeread;

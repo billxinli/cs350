@@ -82,19 +82,18 @@ int sys_write(int *retval, int fdn, void *buf, size_t nbytes) {
             return EBADF;
     }
     //Make the uio
-    struct uio *u = kmalloc(sizeof (struct uio));
-    mk_kuio(u, (void *) buf, nbytes, fd->offset, UIO_WRITE);
+    struct uio u;
+    mk_kuio(&u, (void *) buf, nbytes, fd->offset, UIO_WRITE);
     lock_acquire(writelock);
     //Write
-    int sizewrite = VOP_WRITE(fd->fdvnode, u);
+    int sizewrite = VOP_WRITE(fd->fdvnode, &u);
     lock_release(writelock);
 
     if (sizewrite) {
         return sizewrite;
     }
     //Find the number of bytes written
-    sizewrite = nbytes - u->uio_resid;
-    kfree(u);
+    sizewrite = nbytes - u.uio_resid;
     *retval = sizewrite;
     //Update the offset
     fd->offset += sizewrite;

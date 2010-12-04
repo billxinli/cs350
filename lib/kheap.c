@@ -578,8 +578,11 @@ kmalloc(size_t sz)
 void
 kfree(void *ptr)
 {
+    
     #if OPT_A3
+    kprintf("[!] Call to kfree\n");
     if (was_vm_alloced(ptr) == 0) {
+        kprintf("[!!!!] WAS_VM_ALLOCED IS RETUNING 0!!\n");
         DEBUG(DB_KMALLOC, "kfree called on memory allocated before vm was setup. Ignoring.\n");
         return;
     }

@@ -39,7 +39,9 @@ void swap_bootstrap() {
     int spl = splhigh();
     _vmstats_init();
     splx(spl);
+    
     freePages = (struct free_list *) kmalloc((int) sizeof(struct free_list) * SWAP_PAGES);
+    assert(freePages != NULL);
     pageList = freePages;
     int i = 0;
     //initialize the free pages list
@@ -50,8 +52,11 @@ void swap_bootstrap() {
     freePages[SWAP_PAGES - 1].index = SWAP_PAGES - 1;
     freePages[SWAP_PAGES - 1].next = NULL;
     
+    
     swapfile = kmalloc(sizeof(struct vnode));
-    char *path = kstrdup("SWAPFILE");
+    assert(swapfile != NULL);
+    char *path = kstrdup("SWAPFILE\0");
+    assert(path != NULL);
     vfs_open(path, O_RDWR | O_CREAT, &swapfile);
     kfree(path);
 }

@@ -104,6 +104,6 @@ int is_vm_setup() {
 }
 
 int was_vm_alloced(void *ptr) { //was the memory allocated after the vm was setup?
-    return ((int) ptr >= first_vm_addr);
+    return ((int) ptr >= PADDR_TO_KVADDR(first_vm_addr));
 }
 #endif

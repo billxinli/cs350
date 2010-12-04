@@ -89,6 +89,8 @@ boot(void) {
     dev_bootstrap();
     vm_bootstrap();
 
+    swap_bootstrap();
+    
     tlb_bootstrap();
 #else
     ram_bootstrap();

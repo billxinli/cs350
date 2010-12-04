@@ -36,7 +36,7 @@ void cm_bootstrap() {
     core_map.lowest_frame = low / PAGE_SIZE;
 
     //set the free list to the first frame
-    core_map.free_frame_list = &(core_map.core_details[core_map.lowest_frame]);
+    core_map.free_frame_list = &(core_map.core_details[core_map.size - 1]);
     //initialize the frame details
     int i;
     for (i = core_map.size - 1; i >= core_map.lowest_frame; i--) {
@@ -191,6 +191,7 @@ void cm_free_core(struct cm_detail *cd, int spl) {
     
     //only write to swap if its a dirty page
     if (cd->pd->dirty) {
+        //kprintf("WRITING TO SWAP\n");
         cd->pd->sfn = swap_write(cd->id);
     }else{
         cd->pd->sfn = -1;

@@ -166,7 +166,12 @@ void as_free_segments(struct addrspace *as){
                 //free each physical frame
                 int j;
                 for(j = 0; j < as->segments[i].pt->size; j++){
-                    cm_release_frame(as->segments[i].pt->page_details[j].pfn);
+                    if(as->segments[i].pt->page_details[j].pfn != -1){
+                        cm_release_frame(as->segments[i].pt->page_details[j].pfn);
+                    }
+                    if(as->segments[i].pt->page_details[j].sfn != -1){
+                        swap_free_page(as->segments[i].pt->page_details[j].sfn);
+                    }
                 }
                 //destroy the page table
                 pt_destroy(as->segments[i].pt);

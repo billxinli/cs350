@@ -35,7 +35,6 @@ struct free_list *pageList; //link to the beginning of the array containing the 
 Creates a swapspace file for use by the operating system. May only be called once
  */
 void swap_bootstrap() {
-    assert(curspl > 0);
     swapLock = lock_create("Swapfile Lock");
     _vmstats_init();
     freePages = (struct free_list *) kmalloc((int) sizeof(struct free_list) * SWAP_PAGES);
@@ -47,9 +46,11 @@ void swap_bootstrap() {
         freePages[i].next = &freePages[i + 1];
     }
     freePages[SWAP_PAGES - 1].next = NULL; //fix the last element's next pointer
-    char *path = kstrdup("/SWAPFILE");
-    vfs_open(path, O_RDWR | O_CREAT, &swapfile);
-    kfree(path);
+    swapfile = kmalloc(sizeof(struct vnode));
+    char *path = kstrdup("\SWAPFILE");
+    int result = vfs_open(path, O_RDWR | O_CREAT, &swapfile);
+    kprintf("RESULT OF SWAPFILE OPEN[%x]\n",result);
+    //kfree(path);
 }
 
 /*

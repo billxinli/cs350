@@ -122,11 +122,6 @@ int cm_push_to_swap() {
         if (cd->kern == 0) {
             struct page_detail * pd = cd->pd;
             if (pd == NULL) {
-                ///DEBUG
-                if (cd->free) {
-                    panic("What's going on?");
-                }
-                ///
                 panic("FREE PHYSICAL FRAMES NOT IN THE FREE LIST");
             }
             if (pd->use == 0) {
@@ -146,11 +141,6 @@ int cm_push_to_swap() {
             struct page_detail * pd = cd->pd;
 
             if (pd == NULL) {
-                ///DEBUG
-                if (cd->free) {
-                    panic("What's going on?");
-                }
-                ///
                 panic("FREE PHYSICAL FRAMES NOT IN THE FREE LIST");
             }
             //interupts are re-enabled in free core
@@ -223,6 +213,10 @@ vaddr_t cm_request_kframes(int num) {
     }
     if (frame == -1) {
         panic("No space to get %d kernel page(s)!", num);
+    }
+    
+    for (i = frame; i < frame + num; i++) {
+        core_map.core_details[i].kern = 1;
     }
     
     /*

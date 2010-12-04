@@ -576,7 +576,7 @@ kmalloc(size_t sz)
 }
 
 void
-_kfree(void *ptr)
+kfree(void *ptr)
 {
     
     #if OPT_A3

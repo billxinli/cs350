@@ -92,12 +92,9 @@ u_int32_t random(void);
  * Kernel heap memory allocation. Like malloc/free.
  * If out of memory, kmalloc returns NULL.
  */
- #define kfree(x) (kprintf("%s\n", #x), _kfree(x))
 
-
- 
 void *kmalloc(size_t sz);
-void _kfree(void *ptr);
+void kfree(void *ptr);
 void kheap_printstats(void);
 
 /*

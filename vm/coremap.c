@@ -260,7 +260,6 @@ void cm_release_frame(int frame_number) {
 void cm_release_kframes(int frame_number) {
     assert(core_map.core_details[frame_number].kern);
     int num = core_map.core_details[frame_number].kern;
-    kprintf("[!] Kernel gets %d page(s) starting at #%d\n", num, frame_number);
     assert(num > 0);
     int i;
     for (i = frame_number; i < frame_number + num; i++) {

@@ -36,21 +36,24 @@ Creates a swapspace file for use by the operating system. May only be called onc
  */
 void swap_bootstrap() {
     swapLock = lock_create("Swapfile Lock");
+    int spl = splhigh();
     _vmstats_init();
+    splx(spl);
     freePages = (struct free_list *) kmalloc((int) sizeof(struct free_list) * SWAP_PAGES);
     pageList = freePages;
     int i = 0;
     //initialize the free pages list
-    for (i = 0; i < SWAP_PAGES; i++) {
+    for (i = 0; i < SWAP_PAGES - 1 ; i++) {
         freePages[i].index = i;
         freePages[i].next = &freePages[i + 1];
     }
-    freePages[SWAP_PAGES - 1].next = NULL; //fix the last element's next pointer
+    freePages[SWAP_PAGES - 1].index = SWAP_PAGES - 1;
+    freePages[SWAP_PAGES - 1].next = NULL;
+    
     swapfile = kmalloc(sizeof(struct vnode));
-    char *path = kstrdup("\SWAPFILE");
-    int result = vfs_open(path, O_RDWR | O_CREAT, &swapfile);
-    kprintf("RESULT OF SWAPFILE OPEN[%x]\n",result);
-    //kfree(path);
+    char *path = kstrdup("SWAPFILE");
+    vfs_open(path, O_RDWR | O_CREAT, &swapfile);
+    kfree(path);
 }
 
 /*

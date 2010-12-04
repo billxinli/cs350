@@ -23,6 +23,7 @@
 #include <vmstats.h>
 #include <vm_tlb.h>
 #include <coremap.h>
+#include <swapfile.h>
 #endif /* OPT_A3 */
 
 /*
@@ -88,23 +89,30 @@ boot(void) {
     vfs_bootstrap();
     dev_bootstrap();
     vm_bootstrap();
-
-    swap_bootstrap();
     
     tlb_bootstrap();
+    
+    kprintf_bootstrap();
+
+    /* Default bootfs - but ignore failure, in case emu0 doesn't exist */
+    vfs_setbootfs("emu0");
+    
+    swap_bootstrap();
 #else
     ram_bootstrap();
     scheduler_bootstrap();
     thread_bootstrap();
     vfs_bootstrap();
     dev_bootstrap();
-    vm_bootstrap();
-#endif /* OPT_A3 */
+    vm_bootstrap();    
+    
     kprintf_bootstrap();
 
     /* Default bootfs - but ignore failure, in case emu0 doesn't exist */
     vfs_setbootfs("emu0");
 
+
+#endif /* OPT_A3 */
 
     /*
      * Make sure various things aren't screwed up.

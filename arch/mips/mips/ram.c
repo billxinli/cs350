@@ -93,7 +93,7 @@ ram_getsize(u_int32_t *lo, u_int32_t *hi)
 	*lo = firstpaddr;
 	*hi = lastpaddr;
 	#if OPT_A3
-	first_vm_addr = firstpaddr;
+	first_vm_addr = PADDR_TO_KVADDR(firstpaddr);
 	#endif
 	firstpaddr = lastpaddr = 0;
 }
@@ -104,6 +104,6 @@ int is_vm_setup() {
 }
 
 int was_vm_alloced(void *ptr) { //was the memory allocated after the vm was setup?
-    return ((int) ptr >= PADDR_TO_KVADDR(first_vm_addr));
+    return ((int) ptr >= first_vm_addr);
 }
 #endif

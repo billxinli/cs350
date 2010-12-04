@@ -64,6 +64,7 @@ void free_list_add(struct cm_detail *new) {
         core_map.free_frame_list = new;
     }
     new->free = 1;
+    new->kern = 0;
     splx(spl);
 }
 
@@ -77,7 +78,9 @@ struct cm_detail *free_list_pop() {
     struct cm_detail *retval;
     retval = core_map.free_frame_list;
     core_map.free_frame_list = core_map.free_frame_list->next_free;
-    core_map.free_frame_list->prev_free = NULL;
+    if (core_map.free_frame_list != NULL) {
+        core_map.free_frame_list->prev_free = NULL;
+    }
     /*
       temporarily set to a kernel page, so that it can't be swapped out
       until we finish the cm_request_frame call
@@ -266,10 +269,7 @@ void cm_release_kframes(int frame_number) {
     int i;
     for (i = frame_number; i < frame_number + num; i++) {
         assert(core_map.core_details[i].kern);
-        int spl = splhigh();
         cm_release_frame(i);
-        core_map.core_details[i].kern = 0;
-        splx(spl);
     }
 }
 #endif /* OPT_A3 */

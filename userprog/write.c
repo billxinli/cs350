@@ -94,6 +94,7 @@ int sys_write(int *retval, int fdn, void *buf, size_t nbytes) {
     }
     //Find the number of bytes written
     sizewrite = nbytes - u->uio_resid;
+    kfree(u);
     *retval = sizewrite;
     //Update the offset
     fd->offset += sizewrite;

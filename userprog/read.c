@@ -87,6 +87,7 @@ int sys_read(int *retval, int fdn, void *buf, size_t nbytes) {
     }
     //Find the number of bytes read
     sizeread = nbytes - u->uio_resid;
+    kfree(u);
     *retval = sizeread;
     //Update the offset
     fd->offset += sizeread;

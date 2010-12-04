@@ -10,7 +10,7 @@ struct cm_detail;
 struct cm_detail {
         int id;
         int kern; //indicate the page is a kernel page
-        struct page_detail *pd; //program owning page
+        struct page_detail *pd;
         struct cm_detail *next_free;
         struct cm_detail *prev_free;
         int free;

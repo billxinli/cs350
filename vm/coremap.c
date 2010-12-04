@@ -33,7 +33,7 @@ void cm_bootstrap() {
     ram_getsize(&low, &high);
     assert(high != 0); //if this assertion fails, ram_getsize has been called before
 
-    core_map.lowest_frame = low & PAGE_FRAME;
+    core_map.lowest_frame = low / PAGE_SIZE;
 
     //set the free list to the first frame
     core_map.free_frame_list = &(core_map.core_details[core_map.lowest_frame]);
@@ -64,7 +64,6 @@ void free_list_add(struct cm_detail *new) {
         core_map.free_frame_list = new;
     }
     new->free = 1;
-    new->kern = 0;
     splx(spl);
 }
 
@@ -120,6 +119,11 @@ int cm_push_to_swap() {
         if (cd->kern == 0) {
             struct page_detail * pd = cd->pd;
             if (pd == NULL) {
+                ///DEBUG
+                if (cd->free) {
+                    panic("What's going on?");
+                }
+                ///
                 panic("FREE PHYSICAL FRAMES NOT IN THE FREE LIST");
             }
             if (pd->use == 0) {
@@ -139,6 +143,11 @@ int cm_push_to_swap() {
             struct page_detail * pd = cd->pd;
 
             if (pd == NULL) {
+                ///DEBUG
+                if (cd->free) {
+                    panic("What's going on?");
+                }
+                ///
                 panic("FREE PHYSICAL FRAMES NOT IN THE FREE LIST");
             }
             //interupts are re-enabled in free core
@@ -222,7 +231,9 @@ vaddr_t cm_request_kframes(int num) {
     for (i = frame; i < frame + num; i++) {
         if (core_map.core_details[i].free) {
             if (core_map.free_frame_list == &core_map.core_details[i]) {
-                core_map.free_frame_list->next_free->prev_free = NULL;
+                if (core_map.free_frame_list->next_free != NULL) {
+                    core_map.free_frame_list->next_free->prev_free = NULL;
+                }
                 core_map.free_frame_list = core_map.free_frame_list->next_free;
             } else {
                 if (core_map.core_details[i].prev_free != NULL) {
@@ -255,7 +266,10 @@ void cm_release_kframes(int frame_number) {
     int i;
     for (i = frame_number; i < frame_number + num; i++) {
         assert(core_map.core_details[i].kern);
+        int spl = splhigh();
         cm_release_frame(i);
+        core_map.core_details[i].kern = 0;
+        splx(spl);
     }
 }
 #endif /* OPT_A3 */

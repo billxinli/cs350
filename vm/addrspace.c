@@ -16,6 +16,8 @@
 #include <machine/spl.h>
 #include <machine/tlb.h>
 #include <coremap.h>
+#include <vnode.h>
+#include <vfs.h>
 
 #include <elf.h>
 /* under dumbvm, always have 48k of user stack */
@@ -143,7 +145,15 @@ struct addrspace * as_create(void) {
 }
 
 void as_destroy(struct addrspace *as) {
+    //free the segments
     as_free_segments(as);
+    
+    //close the vnode
+    vfs_close(as->file);
+    if(as->file->vn_refcount == 0){
+        kfree(as->file);
+    }
+    //free the memory
     kfree(as);
 }
 
@@ -215,19 +225,73 @@ int as_define_region(struct addrspace *as, vaddr_t vaddr, size_t sz, int flags, 
 
 }
 
-int as_prepare_load(struct addrspace *as) {
-    (void) as;
-    return 0;
-}
-
-int as_complete_load(struct addrspace *as) {
-    (void) as;
+int as_copy_segments(struct addrspace *old, struct addrspace *new){
+    //set the number of segments
+    new->num_segments = old->num_segments;
+    
+    int i;
+    for (i = 0; i < AS_NUM_SEG; i++) {
+        if (old->segments[i].active) {
+            new->segments[i].active = 1;
+            new->segments[i].vbase = old->segments[i].vbase;
+            new->segments[i].size = old->segments[i].size;
+            new->segments[i].writeable = old->segments[i].writeable;
+            new->segments[i].p_offset = old->segments[i].p_offset;
+            new->segments[i].p_filesz = old->segments[i].p_filesz;
+            new->segments[i].p_memsz = old->segments[i].p_memsz;
+            new->segments[i].p_flags = old->segments[i].p_flags;
+            
+            //copy the page table
+	        new->segments[i].pt = pt_create(&new->segments[i]);
+	        int j;
+	        for(j=0;j < new->segments[i].pt->size; j++){
+ 
+                struct page_detail *pd = &(new->segments[i].pt->page_details[j]);
+                if(old->segments[i].pt->page_details[j].dirty){
+                    //Page is writeable, copy it to a new physical frame for as
+                    pd->use = 0;
+                    pd->valid = 1;
+                    pd->pfn = cm_getppage();
+                    vaddr_t copy_location = PADDR_TO_KVADDR(pd->pfn*PAGE_SIZE);
+                    //COPY THE USPACEMEM TO OUR NEW PHYSICAL PAGE
+                    assert(curthread->t_vmspace == old); //make sure we are the old addressspace.
+                    copyin((void *)pd->vaddr, (void *) copy_location, PAGE_SIZE);
+                    //finish the load
+                    cm_finish_paging(pd->pfn, pd);
+                }else{
+                    //page is not writeable, it will be loaded from elf on demand
+                    //so just set up the page details accordingly
+                    pd->use = 0;
+                    pd->pfn = -1;
+                    pd->valid = 0;
+                    pd->sfn = -1;
+                }
+	        }
+        }
+    }
+    
     return 0;
 }
 
 int as_copy(struct addrspace *old, struct addrspace **ret) {
-    (void) old;
-    (void) ret;
+    struct addrspace *new;
+
+    new = as_create();
+    if (new == NULL) {
+        return ENOMEM;
+    }
+    
+    //copy the vnode and open it.
+    new->file = old->file;
+    vnode_incref(new->file);
+    //copy all of the segments
+    int result = as_copy_segments(old, new);
+    if(result){
+        return result;
+    }
+    
+    //return the new address space
+    *ret = new;
     return 0;
 }
 

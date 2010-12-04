@@ -81,13 +81,12 @@ struct addrspace {
 #if OPT_A3
 struct addrspace *as_create(void);
 int as_copy(struct addrspace *src, struct addrspace **ret);
+int as_copy_segments(struct addrspace *old, struct addrspace *new);
 void as_activate(struct addrspace *);
 void as_destroy(struct addrspace *);
 void as_free_segments(struct addrspace *as);
 
 int as_define_region(struct addrspace *as, vaddr_t vaddr, size_t sz, int flags, u_int32_t offset, u_int32_t filesz);
-int as_prepare_load(struct addrspace *as);
-int as_complete_load(struct addrspace *as);
 int as_define_stack(struct addrspace *as, vaddr_t *initstackptr);
 struct segment * as_get_segment(struct addrspace * as, vaddr_t v);
 int as_valid_read_addr(struct addrspace *as, vaddr_t *check_addr);

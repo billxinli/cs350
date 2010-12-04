@@ -72,6 +72,7 @@ int swap_full() {
 Frees a page in the swap file for reuse (but does not zero it)
  */
 void swap_free_page(swap_index_t n) {
+    DEBUG(DB_SWAP, "DEBUG: Freeing swap page (index %d)\n", (int) n);
     if (curspl == 0) {
         lock_acquire(swapLock);
     }
@@ -84,6 +85,7 @@ void swap_free_page(swap_index_t n) {
 }
 
 void swap_write_page(void *data, swap_index_t n) {
+    DEBUG(DB_SWAP, "DEBUG: Writing to swap (index %d)\n", (int) n);
     struct uio *u = kmalloc(sizeof (struct uio));
     mk_kuio(u, data, PAGE_SIZE, (int) n * PAGE_SIZE, UIO_WRITE);
     VOP_WRITE(swapfile, u);
@@ -120,6 +122,7 @@ Reads the page at index n in the swapfile into memory at the specified physical
 frame
 */
 void swap_read(int phys_frame_num, swap_index_t n) {
+    DEBUG(DB_SWAP, "DEBUG: Reading from swap (index %d)\n", (int) n);
     if (curspl == 0) {
         lock_acquire(swapLock);
     }
@@ -128,6 +131,7 @@ void swap_read(int phys_frame_num, swap_index_t n) {
     mk_kuio(u, write_addr, PAGE_SIZE, (int) n * PAGE_SIZE, UIO_READ);
     VOP_READ(swapfile, u);
     //free page
+    DEBUG(DB_SWAP, "DEBUG: Freeing swap page (index %d)\n", (int) n);
     pageList[(int) n].next = freePages;
     freePages = &pageList[(int) n];
     //

@@ -53,7 +53,8 @@
 #define DB_KFREE      0x2000
 #define DB_VMTLB      0x4000
 #define DB_ELF        0x8000
-#define DB_ALL        0xffff //all debug messages
+#define DB_SWAP      0x10000
+#define DB_ALL       0x1ffff //all debug messages
 
 extern u_int32_t dbflags;
 

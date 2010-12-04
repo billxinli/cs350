@@ -249,9 +249,6 @@ vaddr_t cm_request_kframes(int num) {
 
     }
     splx(spl);
-    ///DEBUG
-    kprintf("[!] Kernel gets %d page(s) starting at #%d\n", num, frame);
-    ///
     return PADDR_TO_KVADDR((paddr_t) (frame * PAGE_SIZE));
 }
 

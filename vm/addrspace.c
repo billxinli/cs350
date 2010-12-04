@@ -288,7 +288,9 @@ int as_copy(struct addrspace *old, struct addrspace **ret) {
     
     //copy the vnode and open it.
     new->file = old->file;
-    vnode_incref(new->file);
+    ///vnode_incref(new->file);
+    VOP_INCREF(new->file);
+    VOP_INCOPEN(new->file);
     //copy all of the segments
     int result = as_copy_segments(old, new);
     if(result){

@@ -9,9 +9,7 @@
 #include <machine/spl.h>
 
 /* Flags word for DEBUG() macro. */
-u_int32_t dbflags = 0;
-//u_int32_t dbflags = DB_ELF;
-//u_int32_t dbflags = DB_KFREE | DB_THREADS | DB_PID;
+u_int32_t dbflags = DB_SWAP;
 
 /* Lock for non-polled kprintfs */
 static struct lock *kprintf_lock;

@@ -36,9 +36,6 @@ Creates a swapspace file for use by the operating system. May only be called onc
  */
 void swap_bootstrap() {
     swapLock = lock_create("Swapfile Lock");
-    int spl = splhigh();
-    _vmstats_init();
-    splx(spl);
     
     freePages = (struct free_list *) kmalloc((int) sizeof(struct free_list) * SWAP_PAGES);
     assert(freePages != NULL);

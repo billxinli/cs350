@@ -158,6 +158,7 @@ void as_destroy(struct addrspace *as) {
             kfree(as->file);
         }
         **/
+        
     }
     //free the memory
     kfree(as);

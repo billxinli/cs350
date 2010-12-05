@@ -34,9 +34,7 @@ struct free_list *pageList; //link to the beginning of the array containing the 
 /*
 Creates a swapspace file for use by the operating system. May only be called once
  */
-void swap_bootstrap() {
-    swapLock = lock_create("Swapfile Lock");
-    
+void swap_bootstrap() {   
     freePages = (struct free_list *) kmalloc((int) sizeof(struct free_list) * SWAP_PAGES);
     assert(freePages != NULL);
     pageList = freePages;
@@ -70,15 +68,9 @@ Frees a page in the swap file for reuse (but does not zero it)
  */
 void swap_free_page(swap_index_t n) {
     DEBUG(DB_SWAP, "DEBUG: Freeing swap page (index %d)\n", (int) n);
-    if (curspl == 0) {
-        lock_acquire(swapLock);
-    }
     //add the page to the front of the free pages list
     pageList[(int) n].next = freePages;
     freePages = &pageList[(int) n];
-    if (curspl == 0) {
-        lock_release(swapLock);
-    }
 }
 
 void swap_write_page(void *data, swap_index_t n) {
@@ -94,23 +86,17 @@ in the swapfile (pass the physical frame number)
  */
 swap_index_t swap_write(int phys_frame_num) {
     swap_index_t pagenum;
-    if (curspl == 0) {
-        lock_acquire(swapLock);
-    }
     void *data = (void *) PADDR_TO_KVADDR(phys_frame_num * PAGE_SIZE);
+    int spl = splhigh();
     if (freePages == NULL) {
         panic("Out of swap space");
     } else {
         pagenum = freePages->index;
         freePages = freePages->next;
     }
-    swap_write_page(data, pagenum);
-    int spl = splhigh();
-    _vmstats_inc(VMSTAT_SWAP_FILE_WRITE);
     splx(spl);
-    if (curspl == 0) {
-        lock_release(swapLock);
-    }
+    swap_write_page(data, pagenum);
+    _vmstats_inc(VMSTAT_SWAP_FILE_WRITE);
     return pagenum;
 }
 
@@ -120,9 +106,6 @@ frame
 */
 void swap_read(int phys_frame_num, swap_index_t n) {
     DEBUG(DB_SWAP, "DEBUG: Reading from swap (index %d)\n", (int) n);
-    if (curspl == 0) {
-        lock_acquire(swapLock);
-    }
     void *write_addr = (void *) PADDR_TO_KVADDR(phys_frame_num * PAGE_SIZE);
     struct uio u;
     mk_kuio(&u, write_addr, PAGE_SIZE, (int) n * PAGE_SIZE, UIO_READ);
@@ -135,9 +118,6 @@ void swap_read(int phys_frame_num, swap_index_t n) {
     int spl = splhigh();
     _vmstats_inc(VMSTAT_SWAP_FILE_READ);
     splx(spl);
-    if (curspl == 0) {
-        lock_release(swapLock);
-    }
 }
 
 #endif

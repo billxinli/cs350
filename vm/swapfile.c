@@ -94,9 +94,9 @@ swap_index_t swap_write(int phys_frame_num) {
         pagenum = freePages->index;
         freePages = freePages->next;
     }
+    _vmstats_inc(VMSTAT_SWAP_FILE_WRITE);
     splx(spl);
     swap_write_page(data, pagenum);
-    _vmstats_inc(VMSTAT_SWAP_FILE_WRITE);
     return pagenum;
 }
 

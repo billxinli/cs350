@@ -19,6 +19,7 @@
 #include <addrspace.h>
 #include <vmstats.h>
 #include <coremap.h>
+#include <vm_tlb.h>
 
 struct page_table* pt_create(struct segment* seg) {
     assert(seg != NULL);

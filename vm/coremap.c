@@ -18,8 +18,8 @@
 #include <swapfile.h>
 
 ///
-int debug = 0;
-int debug2 = 0;
+int debug_claimed_pages = 0;
+int debug_toal_pages_avail = 0;
 ///
 struct cm core_map;
 
@@ -43,7 +43,7 @@ void cm_bootstrap() {
     //initialize the frame details
     int i;
     for (i = core_map.size - 1; i >= core_map.lowest_frame; i--) {
-        debug2++;
+        debug_toal_pages_avail++;
         core_map.core_details[i].id = i;
         core_map.core_details[i].kern = 0;
         core_map.core_details[i].pd = NULL;
@@ -59,8 +59,8 @@ void cm_bootstrap() {
 
 void free_frame_list_add(struct cm_detail *new) {
     int spl = splhigh();
-        debug--;
-    kprintf("\n[%d / %d]\n", debug, debug2);
+    debug_claimed_pages--;
+    DEBUG(DB_CORE, "[free] %3d / %3d pages used.\n", debug_claimed_pages, debug_toal_pages_avail);
     if (core_map.free_frame_list == NULL) {
         core_map.free_frame_list = new;
         core_map.last_free = new;
@@ -79,8 +79,8 @@ void free_frame_list_add(struct cm_detail *new) {
 
 void free_frame_list_add_back(struct cm_detail *new) {
     int spl = splhigh();
-            debug--;
-    kprintf("\n[%d / %d]\n", debug, debug2);
+    debug_claimed_pages--;
+    DEBUG(DB_CORE, "[free] %3d / %3d pages used.\n", debug_claimed_pages, debug_toal_pages_avail);
     if (core_map.last_free == NULL) {
         core_map.free_frame_list = new;
         core_map.last_free = new;
@@ -104,8 +104,8 @@ struct cm_detail *free_frame_list_pop() {
         splx(spl);
         return NULL;
     }
-        debug++;
-    kprintf("\n[%d /  %d]\n", debug, debug2);
+    debug_claimed_pages++;
+    DEBUG(DB_CORE, "[padd] %3d / %3d pages used.\n", debug_claimed_pages, debug_toal_pages_avail);
     struct cm_detail *retval;
     retval = core_map.free_frame_list;
     core_map.free_frame_list = core_map.free_frame_list->next_free;
@@ -127,7 +127,8 @@ struct cm_detail *free_frame_list_pop() {
 
 void free_frame_list_remove(int i) {
     int spl = splhigh();
-    debug++;
+    debug_claimed_pages++;
+    DEBUG(DB_CORE, "[padd] %3d / %3d pages used.\n", debug_claimed_pages, debug_toal_pages_avail);
     assert(core_map.free_frame_list != NULL && core_map.last_free != NULL);
     if (core_map.free_frame_list == core_map.last_free) {
         assert(core_map.free_frame_list == &core_map.core_details[i]);

@@ -149,9 +149,11 @@ void as_destroy(struct addrspace *as) {
     as_free_segments(as);
     
     //close the vnode
-    VOP_DECOPEN(as->file);
-    if(as->file->vn_refcount == 0){
-        kfree(as->file);
+    if (as->file != NULL) {
+        vfs_close(as->file);
+        if(as->file->vn_opencount == 0){
+            kfree(as->file);
+        }
     }
     //free the memory
     kfree(as);

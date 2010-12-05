@@ -483,7 +483,6 @@ mi_switch(threadstate_t nextstate)
 	/*
 	 * Call the scheduler (must come *after* the array_adds)
 	 */
-
 	next = scheduler();
 
 	/* update curthread */

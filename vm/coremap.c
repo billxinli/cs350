@@ -17,7 +17,10 @@
 #include <vm_tlb.h>
 #include <swapfile.h>
 
-
+///
+int debug = 0;
+int debug2 = 0;
+///
 struct cm core_map;
 
 void cm_bootstrap() {
@@ -40,6 +43,7 @@ void cm_bootstrap() {
     //initialize the frame details
     int i;
     for (i = core_map.size - 1; i >= core_map.lowest_frame; i--) {
+        debug2++;
         core_map.core_details[i].id = i;
         core_map.core_details[i].kern = 0;
         core_map.core_details[i].pd = NULL;
@@ -49,12 +53,17 @@ void cm_bootstrap() {
     }
     core_map.core_details[core_map.lowest_frame].next_free = NULL; //fix the last entry
     core_map.core_details[core_map.size - 1].prev_free = NULL; //fix the first entry
+    
+    core_map.last_free = &core_map.core_details[core_map.lowest_frame];
 }
 
-void free_list_add(struct cm_detail *new) {
+void free_frame_list_add(struct cm_detail *new) {
     int spl = splhigh();
+        debug--;
+    kprintf("\n[%d / %d]\n", debug, debug2);
     if (core_map.free_frame_list == NULL) {
         core_map.free_frame_list = new;
+        core_map.last_free = new;
         new->next_free = NULL;
         new->prev_free = NULL;
     } else {
@@ -68,17 +77,41 @@ void free_list_add(struct cm_detail *new) {
     splx(spl);
 }
 
-struct cm_detail *free_list_pop() {
+void free_frame_list_add_back(struct cm_detail *new) {
+    int spl = splhigh();
+            debug--;
+    kprintf("\n[%d / %d]\n", debug, debug2);
+    if (core_map.last_free == NULL) {
+        core_map.free_frame_list = new;
+        core_map.last_free = new;
+        new->next_free = NULL;
+        new->prev_free = NULL;
+    } else {
+        new->prev_free = core_map.last_free;
+        new->next_free = NULL;
+        core_map.last_free->next_free = new;
+        core_map.last_free = new;
+    }
+    new->free = 1;
+    new->kern = 0;
+    splx(spl);
+}
+
+struct cm_detail *free_frame_list_pop() {
     int spl = splhigh();
 
     if (core_map.free_frame_list == NULL) {
         splx(spl);
         return NULL;
     }
+        debug++;
+    kprintf("\n[%d /  %d]\n", debug, debug2);
     struct cm_detail *retval;
     retval = core_map.free_frame_list;
     core_map.free_frame_list = core_map.free_frame_list->next_free;
-    if (core_map.free_frame_list != NULL) {
+    if (core_map.free_frame_list == NULL) {
+        core_map.last_free = NULL;
+    } else {
         core_map.free_frame_list->prev_free = NULL;
     }
     /*
@@ -92,13 +125,36 @@ struct cm_detail *free_list_pop() {
     return retval;
 }
 
+void free_frame_list_remove(int i) {
+    int spl = splhigh();
+    debug++;
+    assert(core_map.free_frame_list != NULL && core_map.last_free != NULL);
+    if (core_map.free_frame_list == core_map.last_free) {
+        assert(core_map.free_frame_list == &core_map.core_details[i]);
+        core_map.free_frame_list = NULL;
+        core_map.last_free = NULL;
+    } else if (core_map.free_frame_list == &core_map.core_details[i]) {
+        core_map.free_frame_list = core_map.free_frame_list->next_free;
+        core_map.free_frame_list->prev_free = NULL;
+    } else if (core_map.last_free == &core_map.core_details[i]) {
+        core_map.last_free = core_map.last_free->prev_free;
+        core_map.last_free->next_free = NULL;
+    } else {
+        core_map.core_details[i].prev_free->next_free = core_map.core_details[i].next_free;
+        core_map.core_details[i].next_free->prev_free = core_map.core_details[i].prev_free;
+    }
+    core_map.core_details[i].free = 0;
+    core_map.core_details[i].kern = 1;
+    splx(spl);   
+}
+
 int clock_to_index(int c) {
     return (c + core_map.lowest_frame);
 }
 
 int cm_getppage(){
     int spl = splhigh();    
-    struct cm_detail *frame = free_list_pop();
+    struct cm_detail *frame = free_frame_list_pop();
     if (frame == NULL) {
         /*
         if no free pages are available, we need to push a frame into
@@ -228,20 +284,7 @@ vaddr_t cm_request_kframes(int num) {
 
     for (i = frame; i < frame + num; i++) {
         if (core_map.core_details[i].free) {
-            if (core_map.free_frame_list == &core_map.core_details[i]) {
-                if (core_map.free_frame_list->next_free != NULL) {
-                    core_map.free_frame_list->next_free->prev_free = NULL;
-                }
-                core_map.free_frame_list = core_map.free_frame_list->next_free;
-            } else {
-                if (core_map.core_details[i].prev_free != NULL) {
-                    core_map.core_details[i].prev_free->next_free = core_map.core_details[i].next_free;
-                }
-                if (core_map.core_details[i].next_free != NULL) {
-                    core_map.core_details[i].next_free->prev_free = core_map.core_details[i].prev_free;
-                }
-            }
-            core_map.core_details[i].free = 0;
+            free_frame_list_remove(i);
         } else {
             cm_free_core(&core_map.core_details[i], spl);
             spl = splhigh();
@@ -254,7 +297,7 @@ vaddr_t cm_request_kframes(int num) {
 
 void cm_release_frame(int frame_number) {
     assert(frame_number >= core_map.lowest_frame);
-    free_list_add(&core_map.core_details[frame_number]);
+    free_frame_list_add(&core_map.core_details[frame_number]);
 }
 
 void cm_release_kframes(int frame_number) {
@@ -264,7 +307,8 @@ void cm_release_kframes(int frame_number) {
     int i;
     for (i = frame_number; i < frame_number + num; i++) {
         assert(core_map.core_details[i].kern);
-        cm_release_frame(i);
+        assert(frame_number >= core_map.lowest_frame);
+        free_frame_list_add_back(&core_map.core_details[i]);
     }
 }
 #endif /* OPT_A3 */

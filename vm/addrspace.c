@@ -149,7 +149,7 @@ void as_destroy(struct addrspace *as) {
     as_free_segments(as);
     
     //close the vnode
-    vfs_close(as->file); //// <-- This causes a failue in one test
+    VOP_DECOPEN(as->file);
     if(as->file->vn_refcount == 0){
         kfree(as->file);
     }
@@ -288,8 +288,6 @@ int as_copy(struct addrspace *old, struct addrspace **ret) {
     
     //copy the vnode and open it.
     new->file = old->file;
-    ///vnode_incref(new->file);
-    VOP_INCREF(new->file);
     VOP_INCOPEN(new->file);
     //copy all of the segments
     int result = as_copy_segments(old, new);
@@ -361,6 +359,12 @@ int as_valid_write_addr(struct addrspace *as, vaddr_t *check_addr) {
     return 0;
 }
 #else
+
+///////////////////////////////////////////////////
+///////////////////////////////////////////////////
+///// EVERYTHING BELOW HERE IS NOT USED IN A3 /////
+///////////////////////////////////////////////////
+///////////////////////////////////////////////////
 
 /*
  * Note! If OPT_DUMBVM is set, as is the case until you start the VM

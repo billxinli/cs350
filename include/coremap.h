@@ -24,6 +24,7 @@ struct cm {
         int lowest_frame;
         struct cm_detail *core_details;
         struct cm_detail *free_frame_list;
+        struct cm_detail *last_free;
 };
 
 //Called to set up the core map

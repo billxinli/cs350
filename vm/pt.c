@@ -17,7 +17,6 @@
 #include <swapfile.h>
 #include <pt.h>
 #include <addrspace.h>
-#include <vm_tlb.h>
 #include <vmstats.h>
 #include <coremap.h>
 

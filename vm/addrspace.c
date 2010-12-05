@@ -18,6 +18,7 @@
 #include <coremap.h>
 #include <vnode.h>
 #include <vfs.h>
+#include <kern/unistd.h>
 
 #include <elf.h>
 /* under dumbvm, always have 48k of user stack */
@@ -151,9 +152,11 @@ void as_destroy(struct addrspace *as) {
     //close the vnode
     if (as->file != NULL) {
         vfs_close(as->file);
+        /**
         if(as->file->vn_opencount == 0){
             kfree(as->file);
         }
+        **/
     }
     //free the memory
     kfree(as);
@@ -290,6 +293,7 @@ int as_copy(struct addrspace *old, struct addrspace **ret) {
     
     //copy the vnode and open it.
     new->file = old->file;
+    VOP_OPEN(new->file, O_RDONLY);
     VOP_INCOPEN(new->file);
     //copy all of the segments
     int result = as_copy_segments(old, new);

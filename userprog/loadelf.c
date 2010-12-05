@@ -115,6 +115,7 @@ int load_segment_page(struct vnode *v, vaddr_t vaddr, struct segment *s, paddr_t
  * Returns the entry point (initial PC) for the program in ENTRYPOINT.
  */
 int load_elf(char * progname, vaddr_t *entrypoint) {
+    
     Elf_Ehdr eh; /* Executable header */
     Elf_Phdr ph; /* "Program header" = segment header */
     int result, i;

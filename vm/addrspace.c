@@ -151,7 +151,8 @@ void as_destroy(struct addrspace *as) {
     
     //close the vnode
     if (as->file != NULL) {
-        vfs_close(as->file);
+        VOP_DECOPEN(as->file);
+       // VOP_DECREF(as->file);
         /**
         if(as->file->vn_opencount == 0){
             kfree(as->file);

@@ -230,12 +230,6 @@ void cm_free_core(struct cm_detail *cd, int spl) {
     cd->pd->valid = 0;
     cd->pd->use = 0;
     
-    //set the core to kernel so it wont be messed with
-    cd->kern = 1;
-    
-    //set the page to not in physical memory
-    cd->pd->pfn = -1;
-    
     //set the page to be 'currently swapping (sfn = -2)
     cd->pd->sfn = -2;
     
@@ -249,6 +243,8 @@ void cm_free_core(struct cm_detail *cd, int spl) {
     }else{
         cd->pd->sfn = -1;
     }
+    //set the page to not in physical memory
+    cd->pd->pfn = -1;
     
     //set the cores page detail to null
     cd->pd = NULL;

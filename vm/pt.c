@@ -59,15 +59,6 @@ void pt_page_in(vaddr_t vaddr, struct segment *s) {
     int pt_offset_id = (vaddr - s->vbase) / PAGE_SIZE;
     struct page_detail *pd = &(s->pt->page_details[pt_offset_id]);
     
-    /*
-     The following loop means that the page being requested is currently being
-     swapped out by another process. In order to avoid having that page in memory
-     twice, we need to wait for it to finish being swapped. To do this, just yield
-    */
-    while (pd->sfn == -2) {
-        thread_yield();
-    }
-    
     if (pd->valid && pd->pfn != -1){
         pd->use = 1;
         _vmstats_inc(VMSTAT_TLB_RELOAD);

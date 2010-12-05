@@ -16,7 +16,7 @@
 #include <machine/spl.h>
 
 //4 * 1024 * 1024 (we have a 4MB page file)
-#define SWAP_SIZE 4194304 / 8
+#define SWAP_SIZE 4194304
 
 struct vnode *swapfile;
 int SWAP_PAGES = SWAP_SIZE / PAGE_SIZE;

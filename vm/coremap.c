@@ -306,7 +306,9 @@ void cm_release_frame(int frame_number) {
 }
 
 void cm_release_kframes(int frame_number) {
-    assert(core_map.core_details[frame_number].kern);
+    if (core_map.core_details[frame_number].kern == 0) {
+        assert(0); //done this way so we can break here in gdb
+    }
     int num = core_map.core_details[frame_number].kern;
     assert(num > 0);
     int i;

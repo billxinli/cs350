@@ -578,7 +578,6 @@ kmalloc(size_t sz)
 void
 kfree(void *ptr)
 {
-    
     #if OPT_A3
     if (was_vm_alloced(ptr) == 0) {
         DEBUG(DB_KMALLOC, "kfree called on memory allocated before vm was setup. Ignoring.\n");

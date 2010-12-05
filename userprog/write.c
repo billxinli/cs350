@@ -84,10 +84,12 @@ int sys_write(int *retval, int fdn, void *buf, size_t nbytes) {
     //Make the uio
     struct uio u;
     mk_kuio(&u, (void *) buf, nbytes, fd->offset, UIO_WRITE);
-    lock_acquire(writelock);
+    ///lock_acquire(writelock);
+    int spl = splhigh();
     //Write
     int sizewrite = VOP_WRITE(fd->fdvnode, &u);
-    lock_release(writelock);
+    splx(spl);
+    ///lock_release(writelock);
 
     if (sizewrite) {
         return sizewrite;

@@ -89,8 +89,10 @@ vmstats_print()
 void
 _vmstats_inc(unsigned int index)
 {
+  int spl = splhigh();
   assert(index < VMSTAT_COUNT);
   stats_counts[index]++;
+  splx(spl);
 }
 
 /* ---------------------------------------------------------------------- */

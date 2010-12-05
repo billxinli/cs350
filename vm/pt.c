@@ -57,6 +57,10 @@ void pt_page_in(vaddr_t vaddr, struct segment *s) {
     //get the page detail
     int pt_offset_id = (vaddr - s->vbase) / PAGE_SIZE;
     struct page_detail *pd = &(s->pt->page_details[pt_offset_id]);
+    
+    while (pd->sfn == -2) { // if the memory is being swapped out by another process
+        thread_yield();
+    }
     if (pd->valid && pd->pfn != -1){
         pd->use = 1;
         _vmstats_inc(VMSTAT_TLB_RELOAD);

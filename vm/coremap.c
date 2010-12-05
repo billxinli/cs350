@@ -229,6 +229,14 @@ void cm_free_core(struct cm_detail *cd, int spl) {
     cd->pd->valid = 0;
     cd->pd->use = 0;
     
+    //somewhat of a hack, but whatever. This tells a proccess wanting the memory
+    //   being swapped out to wait until we're done here before loading
+    // if we didn't do this, memory could be loaded twice and one never freed
+    cd->pd->sfn = -2;
+    
+    //set the page to not in physical memory
+    cd->pd->pfn = -1;
+    
     //set the core to kernel so it wont be messed with
     cd->kern = 1;
     
@@ -242,13 +250,9 @@ void cm_free_core(struct cm_detail *cd, int spl) {
     }else{
         cd->pd->sfn = -1;
     }
-    //set the page to not in physical memory
-    cd->pd->pfn = -1;
     
     //set the cores page detail to null
     cd->pd = NULL;
-    
-    cd->next_free = NULL;
 }
 
 vaddr_t cm_request_kframes(int num) {
